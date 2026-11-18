@@ -95,7 +95,19 @@
   .mine h3{margin:12px 0 6px}
   .logo-prev{width:72px;height:72px;border:1px dashed var(--line);border-radius:10px;display:grid;place-items:center;background:#fff;color:var(--sub);font-size:.8rem;overflow:hidden}
   .logo-prev img{max-width:100%;max-height:100%;object-fit:contain}
-  .sitelink{display:inline-block;margin-top:12px}
+  .sitelinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  #dlg-form{width:min(1000px,96vw);padding:20px 22px}
+  #dlg-form h2{margin-bottom:10px}
+  .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;align-items:start}
+  .fgrid>.stack{gap:10px;min-width:0}
+  @media (max-width:860px){.fgrid{grid-template-columns:1fr}}
+  #dlg-form fieldset{padding:6px 12px 9px}
+  #dlg-form textarea.short{min-height:66px}
+  #dlg-form .dbtns{margin-top:12px}
+  .linkrows{display:grid;gap:6px}
+  .linkrow{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr) auto;gap:6px}
+  .linkrow button{padding:4px 10px;color:var(--sub)}
+  .linkadd{padding:6px 11px;font-size:.88rem;justify-self:start}
   .noticebox a{color:var(--accent-dark);overflow-wrap:anywhere}
   .lock{max-width:420px;margin:30px auto}
   .t-grid>.card{margin:0}
@@ -536,6 +548,12 @@ async function findMine(name){
 }
 
 /* ───────── 연수 등록 / 정보 수정 ───────── */
+/* 연수원 링크 목록. 예전에 한 칸으로 저장한 링크도 함께 읽는다 */
+const linksOf = t => [...(Array.isArray(t.links) ? t.links : []), ...(t.link ? [{ name: '', url: t.link }] : [])].filter(x => x && /^https?:\/\//i.test(x.url || ''));
+const linkRow = x => `<div class="linkrow">
+  <input type="text" name="lname" value="${esc(x.name)}" placeholder="연수원 이름 (예: 경기도교육청남부연수원)" aria-label="연수원 이름">
+  <input type="text" name="lurl" inputmode="url" value="${esc(x.url)}" placeholder="링크 (예: https://www.gtie.go.kr/)" aria-label="연수원 링크">
+  <button type="button" data-rmlink title="이 링크 빼기" aria-label="이 링크 빼기">×</button></div>`;
 async function openForm(existing, tid){
   const r = await loadRoster();
   const t = existing || { type: 'online', needSign: false, fields: DEFAULT_FIELDS, certNote: '미제출' };
@@ -543,52 +561,57 @@ async function openForm(existing, tid){
   const dlg = $('#dlg-form');
   dlg.innerHTML = `<form class="t-${t.type}" id="tform">
     <h2>${existing ? '연수 정보 수정' : '연수 등록'}</h2>
+    <div class="fgrid">
     <div class="stack">
       <div class="seg" role="radiogroup" aria-label="연수 형태">
         <label><input type="radio" name="type" value="online" ${t.type === 'online' ? 'checked' : ''} ${existing ? 'disabled' : ''}>온라인 연수</label>
         <label><input type="radio" name="type" value="offline" ${t.type === 'offline' ? 'checked' : ''} ${existing ? 'disabled' : ''}>대면 연수</label>
       </div>
       <label class="f">연수명<span class="req">*</span> <input type="text" name="title" required value="${esc(t.title)}" placeholder="예: 2026 학교안전교육 연수"></label>
-      ${`<fieldset><legend>${existing ? '명부에서 대상 추가로 불러오기 (이미 명단에 있는 사람은 건너뜁니다)' : '연수 대상 (명부에서 한 번에 불러오기)'}</legend>
+      <fieldset><legend>${existing ? '명부에서 대상 추가로 불러오기 (이미 있는 사람은 건너뜁니다)' : '연수 대상 (명부에서 한 번에 불러오기)'}</legend>
         ${r.members.length ? `<div class="checks">${r.groups.map(g => `<label class="chk"><input type="checkbox" name="grp" value="${esc(g.id)}"> ${esc(g.name)} <small class="muted">${cnt(g.id)}명</small></label>`).join('')}</div>`
           : '<p class="muted small" style="margin:0">명부가 비어 있습니다. 빈 명단으로 만들어지고, 나중에 사람을 추가할 수 있습니다.</p>'}
-      </fieldset>`}
+      </fieldset>
       <div class="two">
         <label class="f">연수대상 표기 <input type="text" name="target" value="${esc(t.target)}" placeholder="예: 전직원, 교원"></label>
         <label class="f">담당자 <input type="text" name="manager" value="${esc(t.manager)}"></label>
       </div>
-
-      <div class="only-on stack">
-        <div class="two">
-          <label class="f">완료요구일 <input type="date" name="due" value="${esc(isOnline(t) ? t.due : '')}"></label>
-          <label class="f">교육기관 <input type="text" name="org" value="${esc(t.org)}" placeholder="예: 경기도교육청 온라인 연수원"></label>
-        </div>
-        <div class="two">
-          <label class="f">이수기간 <input type="text" name="period" value="${esc(t.period)}" placeholder="예: 2026.11.1.~11.30."></label>
-          <fieldset><legend>이수증 제출 여부</legend>
-            <div class="checks">${['제출', '미제출'].map(o => `<label class="chk"><input type="checkbox" name="certNote" value="${o}" ${t.certNote === o ? 'checked' : ''}> ${o}</label>`).join('')}</div>
-          </fieldset>
-        </div>
-        <label class="f">연수원 링크 <input type="text" name="link" inputmode="url" value="${esc(t.link)}" placeholder="예: https://www.gseek.kr (연수 화면에 바로 가기 버튼이 생깁니다)"></label>
-        <fieldset><legend>각자 입력할 항목</legend>
-          <div class="checks">${FIELDS.map(f => `<label class="chk"><input type="checkbox" name="fld" value="${f.key}" ${(t.fields || []).includes(f.key) ? 'checked' : ''}> ${f.label}</label>`).join('')}
-            <label class="chk"><input type="checkbox" name="fldSign" ${isOnline(t) && t.needSign ? 'checked' : ''}> 전자서명</label></div>
-        </fieldset>
+      <div class="only-on two">
+        <label class="f">완료요구일 <input type="date" name="due" value="${esc(isOnline(t) ? t.due : '')}"></label>
+        <label class="f">이수기간 <input type="text" name="period" value="${esc(t.period)}" placeholder="예: 2026.11.1.~11.30."></label>
       </div>
-
       <div class="only-off stack">
         <div class="two">
           <label class="f">연수 날짜<span class="req">*</span> <input type="date" name="date" ${t.type === 'offline' ? 'required' : ''} value="${esc(!isOnline(t) ? t.due : '')}"></label>
           <label class="f">시간 <input type="text" name="time" value="${esc(t.time)}" placeholder="예: 15:00~16:30"></label>
         </div>
         <label class="f">장소 <input type="text" name="place" value="${esc(t.place)}" placeholder="예: 시청각실"></label>
-        <p class="muted small" style="margin:0">대면 연수는 명단에서 본인 줄을 눌러 전자서명을 받습니다.</p>
       </div>
+    </div>
 
-      <label class="f">연수 관련 안내 사항 <textarea name="notice" class="short" style="margin-top:4px;font-weight:400" placeholder="예: 이수 후 이수증을 교무실로 제출해 주세요. 연수 주소: ...">${esc(t.notice)}</textarea></label>
+    <div class="stack">
+      <fieldset class="only-on"><legend>이수증 제출 여부</legend>
+        <div class="checks">${['제출', '미제출'].map(o => `<label class="chk"><input type="checkbox" name="certNote" value="${o}" ${t.certNote === o ? 'checked' : ''}> ${o}</label>`).join('')}</div>
+      </fieldset>
+      <fieldset class="only-on"><legend>연수원 링크</legend>
+        <div class="linkrows" id="linkrows">${linksOf(t).map(linkRow).join('')}</div>
+        <button type="button" class="linkadd" id="linkadd" style="margin-top:6px">＋ 연수원 링크 추가</button>
+      </fieldset>
+      <label class="f">연수 관련 안내 사항 <textarea name="notice" class="short" style="margin-top:4px;font-weight:400" placeholder="예: 이수 후 이수증을 교무실로 제출해 주세요.">${esc(t.notice)}</textarea></label>
+      <fieldset class="only-on"><legend>각자 입력할 항목</legend>
+        <div class="checks">${FIELDS.map(f => `<label class="chk"><input type="checkbox" name="fld" value="${f.key}" ${(t.fields || []).includes(f.key) ? 'checked' : ''}> ${f.label}</label>`).join('')}
+          <label class="chk"><input type="checkbox" name="fldSign" ${isOnline(t) && t.needSign ? 'checked' : ''}> 전자서명</label></div>
+      </fieldset>
+      <p class="only-off muted small" style="margin:0">대면 연수는 명단에서 본인 줄을 눌러 전자서명을 받습니다.</p>
+    </div>
     </div>
     <div class="dbtns"><button type="button" data-close>취소</button><button type="submit" class="primary">${existing ? '저장' : '등록'}</button></div>
   </form>`;
+  $('#linkadd').addEventListener('click', () => {
+    $('#linkrows').insertAdjacentHTML('beforeend', linkRow({ name: '', url: '' }));
+    $('#linkrows').lastElementChild.querySelector('input').focus();
+  });
+  $('#linkrows').addEventListener('click', e => { const x = e.target.closest('[data-rmlink]'); if(x) x.closest('.linkrow').remove(); });
   const form = $('#tform');
   const tgt = form.elements.target;
   let auto = !existing;
@@ -610,7 +633,8 @@ async function openForm(existing, tid){
       const type = existing ? existing.type : form.querySelector('[name=type]:checked').value;
       const data = { title: v('title'), target: v('target'), manager: v('manager'), notice: v('notice') };
       if(type === 'online') Object.assign(data, {
-        due: v('due'), needSign: form.elements.fldSign.checked, org: v('org'), period: v('period'), link: fixUrl(v('link')),
+        due: v('due'), needSign: form.elements.fldSign.checked, period: v('period'), link: '',
+        links: [...form.querySelectorAll('.linkrow')].map(x => ({ name: x.querySelector('[name=lname]').value.trim(), url: fixUrl(x.querySelector('[name=lurl]').value) })).filter(x => x.url),
         certNote: (form.querySelector('[name=certNote]:checked') || {}).value || '',
         fields: [...form.querySelectorAll('[name=fld]:checked')].map(c => c.value) });
       else Object.assign(data, { due: v('date'), time: v('time'), place: v('place'), needSign: true, fields: [] });
@@ -725,7 +749,7 @@ function paintInfo(){
     </div>
     <h1>${esc(t.title)}</h1>
     <dl class="meta">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>
-    ${isOnline(t) && /^https?:\/\//i.test(t.link || '') ? `<a class="btn sitelink" href="${esc(t.link)}" target="_blank" rel="noopener noreferrer">연수원 바로 가기 ↗</a>` : ''}
+    ${isOnline(t) && linksOf(t).length ? `<div class="sitelinks">${linksOf(t).map(x => `<a class="btn" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.name || '연수원 바로 가기')} ↗</a>`).join('')}</div>` : ''}
     ${t.notice ? `<p class="noticebox"><b>안내 사항</b>${linkify(t.notice)}</p>` : ''}`;
   const ai = $('#t-ai'); if(ai) ai.hidden = !fieldsOf(t).some(f => AI_KEYS.includes(f.key)) || !!t.archived;
   $('#guide').textContent = isOnline(t)
@@ -1131,7 +1155,7 @@ function renderSheets(){
 
   if(isOnline(t)){
     const fields = fieldsOf(t);
-    const info = [['교육기관', t.org], ['이수기간', t.period], ['이수증 제출 여부', t.certNote]];
+    const info = [...(t.org ? [['교육기관', t.org]] : []), ['이수기간', t.period], ['이수증 제출 여부', t.certNote]];
     mount.innerHTML = `<section class="sheet online"><table class="pagewrap"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td>
       <h2>${esc(t.title)}</h2>
       <p class="sub"><span>연수 이수명단</span><span>${esc(school)}</span></p>
