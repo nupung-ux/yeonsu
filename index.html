@@ -71,9 +71,29 @@
   @media (max-width:900px){.split2{grid-template-columns:1fr}}
   .item.on{background:#f7f3fe;border-color:#dfd3f6} .item.off{background:#fff6ea;border-color:#f2dcc0}
   a.item.on:hover{border-color:#b9a0ea} a.item.off:hover{border-color:#e3b579}
-  .list li{display:flex;gap:6px;align-items:stretch}
-  .list li>.item{flex:1;min-width:0}
-  .it-edit{padding:4px 9px;font-size:.82rem;color:var(--sub)}
+  .list li{position:relative}
+  .col .list a.item{padding-right:48px}
+  .it-edit{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;padding:7px;border-radius:8px;color:var(--sub);line-height:0}
+  .it-edit:hover{background:rgba(0,0,0,.07);color:var(--ink)}
+  .home-top{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px}
+  .ht-left{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;min-width:0}
+  .ht-right{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+  @media (max-width:1150px){.home-top{grid-template-columns:minmax(0,1fr) auto;gap:10px}}
+  .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:10px;color:var(--sub);border:1.5px solid var(--line);background:#fff}
+  .iconbtn:hover{color:var(--ink);border-color:#9db7e0}
+  h1 .logo{height:1.5em;width:auto;max-width:2.4em;object-fit:contain;vertical-align:-.35em;margin-right:8px}
+  .mrow{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:9px;text-decoration:none;color:inherit;font-size:.9rem;background:#fff}
+  .mrow.on{background:#f7f3fe;border-color:#dfd3f6} .mrow.off{background:#fff6ea;border-color:#f2dcc0}
+  .mrow .mt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+  .mine .list{gap:5px;grid-template-columns:minmax(0,1fr)}
+  .mine .list li{min-width:0}
+  .mrow{min-width:0}
+  .mrow .badge{flex:none}
+  .mine h3{margin:12px 0 6px}
+  .logo-prev{width:72px;height:72px;border:1px dashed var(--line);border-radius:10px;display:grid;place-items:center;background:#fff;color:var(--sub);font-size:.8rem;overflow:hidden}
+  .logo-prev img{max-width:100%;max-height:100%;object-fit:contain}
+  .sitelink{display:inline-block;margin-top:12px}
+  .noticebox a{color:var(--accent-dark);overflow-wrap:anywhere}
   .lock{max-width:420px;margin:30px auto}
   .t-grid>.card{margin:0}
   @media (max-width:1050px){.t-grid{grid-template-columns:1fr}.t-left{position:static;max-height:none}}
@@ -164,7 +184,6 @@
   .cursign img{height:40px;max-width:140px;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:#fff;padding:2px}
   .err{color:var(--warn);font-weight:700;margin:10px 0 0}
   .req{color:var(--warn);font-weight:700;margin-left:2px}
-  .reqnote{margin:-6px 0 12px;font-size:.85rem;color:var(--sub)}
   textarea.short{min-height:84px}
   .noticebox{margin:12px 0 0;background:#fff7e0;border:1px solid #ecd58b;border-radius:10px;padding:10px 12px;font-size:.93rem;white-space:pre-wrap;overflow-wrap:anywhere}
   .noticebox b{display:block;margin-bottom:2px}
@@ -197,17 +216,19 @@
   .sheet .split{border-left:.7mm solid #000}
   .sheet td.sg{padding:.4mm}
   .sheet td.sg img{display:block;margin:0 auto;max-width:100%;object-fit:contain}
-  .sheet.online td{height:7.6mm;padding:.6mm 1mm}
-  .sheet.online table{font-size:9pt}
-  .sheet.online tr{break-inside:avoid}
+  .sheet.online .in td{height:7.6mm;padding:.6mm 1mm}
+  .sheet.online .in{font-size:9pt}
+  .sheet table.pagewrap>thead>tr>td,.sheet table.pagewrap>tfoot>tr>td{height:12mm;border:0;padding:0}
+  .sheet table.pagewrap>tbody>tr>td{border:0;padding:0 12mm;text-align:left;overflow:visible}
+  .sheet.online .in tr{break-inside:avoid}
   .sheet .pg{text-align:center;font-size:9pt;margin:2mm 0 0}
-  @page{size:A4 portrait;margin:12mm}
+  @page{size:A4 portrait;margin:0}   /* 여백을 0으로 두면 브라우저의 머리글, 바닥글이 찍히지 않는다. 여백은 아래에서 직접 준다 */
   @media print{
     body{background:#fff}
     main{max-width:none;padding:0}
     .no-print,footer,#toast,dialog{display:none!important}
     .print-only{display:block}
-    .sheet.offline{break-after:page}
+    .sheet.offline{break-after:page;padding:12mm}
     .sheet.offline:last-child{break-after:auto}
   }
 </style>
@@ -329,6 +350,9 @@ function qrDataUrl(text){
   catch(_){ return null; }
 }
 const isOnline = t => t.type === 'online';
+const fixUrl = u => { u = String(u || '').trim(); return !u ? '' : /^https?:\/\//i.test(u) ? u : 'https://' + u; };
+/* 글 속의 주소(http, https)를 누를 수 있는 링크로 바꾼다 */
+const linkify = text => esc(text).replace(/https?:\/\/[^\s<]+/g, m => { const tail = (m.match(/[.,;:!?)\]]+$/) || [''])[0]; const u = tail ? m.slice(0, -tail.length) : m; return `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>${tail}`; });
 const fieldsOf = t => isOnline(t) ? FIELDS.filter(f => (t.fields || []).includes(f.key)) : [];
 const isPast = t => !!t.due && t.due < today();
 /* 기록은 했지만 비워 둔 칸(항목 key 목록). 전자서명이 필요한데 없으면 'sign' */
@@ -342,6 +366,7 @@ const S = {
   roster: null,          // { school, groups:[{id,name}], members:[{id,group,role,name}] }
   list: [],
   tid: null, t: null, recs: {}, unsubs: [],
+  app: { year: '', logo: '' },
   saveTimer: null, saveFn: null, pad: null, sel: new Set(), adminOk: false, pendingAI: null
 };
 function scheduleSave(fn){ S.saveFn = fn; clearTimeout(S.saveTimer); S.saveTimer = setTimeout(flushSave, 600); }
@@ -353,8 +378,20 @@ async function flushSave(){
 }
 window.addEventListener('beforeunload', () => { if(S.saveFn) flushSave(); });
 
+const schoolYear = () => { const d = new Date(); return String(d.getMonth() >= 2 ? d.getFullYear() : d.getFullYear() - 1); };   // 3월에 새 학년도
+const okLogo = u => typeof u === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(u);
+const inYear = t => (t.year || S.app.year) === S.app.year;
+function applyLogo(){
+  let link = document.querySelector('link[rel="icon"]');
+  if(okLogo(S.app.logo)){ if(!link){ link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); } link.href = S.app.logo; }
+  else if(link) link.remove();
+}
+function saveApp(){ return setDoc(doc(db, 'settings', 'app'), { year: S.app.year, logo: S.app.logo || '', updatedAt: serverTimestamp() }); }
 async function loadRoster(){
-  const snap = await getDoc(doc(db, 'settings', 'roster'));
+  const [snap, appSnap] = await Promise.all([getDoc(doc(db, 'settings', 'roster')), getDoc(doc(db, 'settings', 'app'))]);
+  const a = appSnap.exists() ? appSnap.data() : {};
+  S.app = { year: a.year || schoolYear(), logo: a.logo || '', saved: !!a.year };
+  applyLogo();
   const d = snap.exists() ? snap.data() : {};
   const groups = (d.groups && d.groups.length ? d.groups : DEFAULT_GROUPS).map(g => ({ id: g.id, name: g.name }));
   const members = (d.members || []).map(m => ({ id: m.id || rid(), group: m.group, role: m.role || '', name: m.name || '' }));
@@ -399,13 +436,14 @@ async function viewHome(archived){
   $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
   const [snap] = await Promise.all([
     getDocs(query(collection(db, 'trainings'), orderBy('createdAt', 'desc'))), loadRoster() ]);
-  const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => !!t.archived === archived);
+  const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => !!t.archived === archived && inYear(t));
   const counts = await Promise.all(list.map(t => t.done ? Object.keys(t.done).length :
     getCountFromServer(collection(db, 'trainings', t.id, 'records')).then(s => s.data().count).catch(() => null)));
   list.forEach((t, i) => t.count = counts[i]);
   list.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
   S.list = list;
-  document.title = `${S.roster.school} 연수 등록부`;
+  const appTitle = `${S.app.year}학년도 ${S.roster.school} 연수 등록부`;
+  document.title = appTitle;
 
   const item = t => {
     const meta = [
@@ -419,7 +457,7 @@ async function viewHome(archived){
     const typeCls = isOnline(t) ? 'on' : 'off';
     if(archived) return `<li><div class="item ${typeCls}">${inner}
       <span class="btns" style="grid-column:1/-1;margin-top:6px"><button data-act="restore" data-id="${esc(t.id)}">되살리기</button><button class="danger" data-act="purge" data-id="${esc(t.id)}">완전 삭제</button></span></div></li>`;
-    return `<li><a class="item ${typeCls}" href="#t/${esc(t.id)}">${inner}</a><button class="it-edit" data-act="edit-home" data-id="${esc(t.id)}" title="연수 정보 수정">수정</button></li>`;
+    return `<li><a class="item ${typeCls}" href="#t/${esc(t.id)}">${inner}</a><button class="it-edit" data-act="edit-home" data-id="${esc(t.id)}" title="연수 정보 수정" aria-label="연수 정보 수정"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button></li>`;
   };
   const col = (type, label, cls) => {
     const arr = list.filter(t => t.type === type);
@@ -428,20 +466,23 @@ async function viewHome(archived){
   };
 
   if(archived){
-    $app.innerHTML = `<div class="top"><h1>보관함</h1><div class="btns"><a class="btn" href="#">← 연수 목록</a></div></div>
+    $app.innerHTML = `<div class="top"><h1>${esc(S.app.year)}학년도 보관함</h1><div class="btns"><a class="btn" href="#">← 연수 목록</a></div></div>
       <p class="muted small" style="margin:-6px 0 14px">기록이 들어 있던 연수는 삭제해도 여기로 옮겨집니다. 되살리거나 완전히 지울 수 있습니다.</p>
-      <div class="cols">${col('online', '온라인', 'on')}${col('offline', '오프라인', 'off')}</div>`;
+      <div class="cols">${col('online', '온라인', 'on')}${col('offline', '대면', 'off')}</div>`;
     return;
   }
   $app.innerHTML = `
-    <div class="top"><h1>${esc(S.roster.school)} 연수 등록부</h1>
-      <div class="btns"><button class="primary big" data-act="new">＋ 연수 등록</button><a class="btn big" href="#roster" style="padding:11px 18px">명부 관리</a></div></div>
+    <div class="top home-top">
+      <div class="ht-left"><h1>${okLogo(S.app.logo) ? `<img class="logo" src="${S.app.logo}" alt="">` : ''}${esc(appTitle)}</h1>
+        <div class="btns"><a class="btn big" href="#roster" style="padding:11px 18px">명부 관리</a><button class="primary big" data-act="new">＋ 연수 등록</button></div></div>
+      <div class="ht-right">
+        <a class="iconbtn" href="#archive" title="보관함" aria-label="보관함"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M10 13h4"/></svg></a>
+        <a class="iconbtn" href="#admin" title="관리자 설정" aria-label="관리자 설정"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+      </div></div>
     ${S.roster.members.length ? '' : '<p class="notice">교직원 명부가 아직 비어 있습니다. <a href="#roster">명부 관리</a>에서 교원, 교직원, 봉사자 명부를 먼저 넣어 두면 연수를 등록할 때 대상을 한 번에 불러올 수 있습니다.</p>'}
     <div class="home-grid">
       <div>
-        <div class="cols">${col('online', '온라인', 'on')}${col('offline', '오프라인', 'off')}</div>
-        <p class="muted small" style="margin:14px 0 0">숫자는 「기록한 사람 / 대상 인원」입니다. 연수 칸을 누르면 명단이 열리고, 옆의 「수정」으로 연수 정보를 고칩니다.</p>
-        <p class="foot-links"><a href="#archive">보관함 보기</a>　<a href="#admin">관리자 설정</a></p>
+        <div class="cols">${col('online', '온라인', 'on')}${col('offline', '대면', 'off')}</div>
       </div>
       <aside class="mine-col">
         <h2>내 연수 기록 찾기</h2>
@@ -478,35 +519,30 @@ async function findMine(name){
   });
   done.sort((a, b) => (b.miss.length ? 1 : 0) - (a.miss.length ? 1 : 0));
   const partial = done.filter(x => x.miss.length).length;
-  const item = ({ t, r, miss }) => `<li><a class="item ${isOnline(t) ? 'on' : 'off'}" href="#t/${esc(t.id)}/${esc(r.id)}">
-      <span class="it-title">${esc(t.title)}</span>
-      <span class="it-meta">${esc([r.role, t.due ? fmtDate(t.due) + (isOnline(t) ? '까지' : '') : ''].filter(Boolean).join('  |  ') || ' ')}</span>
-      <span class="it-side"><span class="badge ${isOnline(t) ? 'on' : 'off'}">${isOnline(t) ? '온라인' : '오프라인'}</span></span>
-      ${miss.length ? `<span class="missing">아직 입력하지 않은 칸: ${esc(miss.map(fieldLabel).join(', '))}</span>` : ''}</a></li>`;
+  const item = ({ t, r, miss }) => `<li><a class="mrow ${isOnline(t) ? 'on' : 'off'}" href="#t/${esc(t.id)}/${esc(r.id)}" title="${esc([t.title, r.role].filter(Boolean).join(' / '))}">
+      <span class="mt">${esc(t.title)}</span>
+      ${miss.length ? `<span class="badge warn" title="아직 입력하지 않은 칸: ${esc(miss.map(fieldLabel).join(', '))}">미입력 ${miss.length}칸</span>` : ''}
+      <span class="badge ${isOnline(t) ? 'on' : 'off'}">${isOnline(t) ? '온라인' : '대면'}</span></a></li>`;
   const blank = unknown.filter(t => (t.rows || []).some(r => !r.name && !(r.id in t.done)));
+  const none = '<p class="muted small" style="margin:0">없습니다.</p>';
   box.innerHTML = `
-    <p class="mine-sum">「${esc(name.trim())}」 님: 아직 기록하지 않은 연수 ${todo.length}건, 기록한 연수 ${done.length}건${partial ? ` (그중 덜 입력한 연수 ${partial}건)` : ''}</p>
-    <div class="cols">
-      <div><h3>아직 기록하지 않은 연수</h3>${todo.length ? `<ul class="list">${todo.map(item).join('')}</ul>` : '<p class="muted small" style="margin:0">없습니다.</p>'}</div>
-      <div><h3>기록한 연수</h3>${done.length ? `<ul class="list">${done.map(item).join('')}</ul>` : '<p class="muted small" style="margin:0">없습니다.</p>'}</div>
-    </div>
-    <p class="muted small" style="margin:12px 0 0">연수를 누르면 본인 줄의 입력 창이 바로 열립니다. 이름은 명단에 적힌 것과 똑같이 입력해야 찾을 수 있습니다.</p>
-    ${blank.length ? `<p class="muted small" style="margin:6px 0 0">아래 ${blank.length}건은 명단에 이름이 비어 있는 줄이 있어 대상인지 알 수 없습니다. 직접 열어 확인해 주세요: ${blank.map(t => `<a href="#t/${esc(t.id)}">${esc(t.title)}</a>`).join(', ')}</p>` : ''}`;
+    <h3 class="mine-sum">아직 기록하지 않은 연수 ${todo.length}건</h3>${todo.length ? `<ul class="list">${todo.map(item).join('')}</ul>` : none}
+    <h3>기록한 연수 ${done.length}건${partial ? ` (덜 입력 ${partial}건)` : ''}</h3>${done.length ? `<ul class="list">${done.map(item).join('')}</ul>` : none}
+    ${blank.length ? `<p class="muted small" style="margin:10px 0 0" title="${esc(blank.map(t => t.title).join(', '))}">이름이 빈 줄이 있어 대상인지 알 수 없는 연수 ${blank.length}건</p>` : ''}`;
 }
 
 /* ───────── 연수 등록 / 정보 수정 ───────── */
 async function openForm(existing, tid){
   const r = await loadRoster();
-  const t = existing || { type: 'online', needSign: false, fields: DEFAULT_FIELDS };
+  const t = existing || { type: 'online', needSign: false, fields: DEFAULT_FIELDS, certNote: '미제출' };
   const cnt = gid => r.members.filter(m => m.group === gid).length;
   const dlg = $('#dlg-form');
   dlg.innerHTML = `<form class="t-${t.type}" id="tform">
     <h2>${existing ? '연수 정보 수정' : '연수 등록'}</h2>
-    <p class="reqnote"><span class="req">*</span> 표시는 꼭 입력해야 하는 칸입니다.</p>
     <div class="stack">
       <div class="seg" role="radiogroup" aria-label="연수 형태">
         <label><input type="radio" name="type" value="online" ${t.type === 'online' ? 'checked' : ''} ${existing ? 'disabled' : ''}>온라인 연수</label>
-        <label><input type="radio" name="type" value="offline" ${t.type === 'offline' ? 'checked' : ''} ${existing ? 'disabled' : ''}>오프라인 연수</label>
+        <label><input type="radio" name="type" value="offline" ${t.type === 'offline' ? 'checked' : ''} ${existing ? 'disabled' : ''}>대면 연수</label>
       </div>
       <label class="f">연수명<span class="req">*</span> <input type="text" name="title" required value="${esc(t.title)}" placeholder="예: 2026 학교안전교육 연수"></label>
       ${`<fieldset><legend>${existing ? '명부에서 대상 추가로 불러오기 (이미 명단에 있는 사람은 건너뜁니다)' : '연수 대상 (명부에서 한 번에 불러오기)'}</legend>
@@ -529,6 +565,7 @@ async function openForm(existing, tid){
             <div class="checks">${['제출', '미제출'].map(o => `<label class="chk"><input type="checkbox" name="certNote" value="${o}" ${t.certNote === o ? 'checked' : ''}> ${o}</label>`).join('')}</div>
           </fieldset>
         </div>
+        <label class="f">연수원 링크 <input type="text" name="link" inputmode="url" value="${esc(t.link)}" placeholder="예: https://www.gseek.kr (연수 화면에 바로 가기 버튼이 생깁니다)"></label>
         <fieldset><legend>각자 입력할 항목</legend>
           <div class="checks">${FIELDS.map(f => `<label class="chk"><input type="checkbox" name="fld" value="${f.key}" ${(t.fields || []).includes(f.key) ? 'checked' : ''}> ${f.label}</label>`).join('')}
             <label class="chk"><input type="checkbox" name="fldSign" ${isOnline(t) && t.needSign ? 'checked' : ''}> 전자서명</label></div>
@@ -541,7 +578,7 @@ async function openForm(existing, tid){
           <label class="f">시간 <input type="text" name="time" value="${esc(t.time)}" placeholder="예: 15:00~16:30"></label>
         </div>
         <label class="f">장소 <input type="text" name="place" value="${esc(t.place)}" placeholder="예: 시청각실"></label>
-        <p class="muted small" style="margin:0">오프라인 연수는 명단에서 본인 줄을 눌러 전자서명을 받습니다.</p>
+        <p class="muted small" style="margin:0">대면 연수는 명단에서 본인 줄을 눌러 전자서명을 받습니다.</p>
       </div>
 
       <label class="f">연수 관련 안내 사항 <textarea name="notice" class="short" style="margin-top:4px;font-weight:400" placeholder="예: 이수 후 이수증을 교무실로 제출해 주세요. 연수 주소: ...">${esc(t.notice)}</textarea></label>
@@ -569,7 +606,7 @@ async function openForm(existing, tid){
       const type = existing ? existing.type : form.querySelector('[name=type]:checked').value;
       const data = { title: v('title'), target: v('target'), manager: v('manager'), notice: v('notice') };
       if(type === 'online') Object.assign(data, {
-        due: v('due'), needSign: form.elements.fldSign.checked, org: v('org'), period: v('period'),
+        due: v('due'), needSign: form.elements.fldSign.checked, org: v('org'), period: v('period'), link: fixUrl(v('link')),
         certNote: (form.querySelector('[name=certNote]:checked') || {}).value || '',
         fields: [...form.querySelectorAll('[name=fld]:checked')].map(c => c.value) });
       else Object.assign(data, { due: v('date'), time: v('time'), place: v('place'), needSign: true, fields: [] });
@@ -587,7 +624,7 @@ async function openForm(existing, tid){
         if(r.members.length && !on.length && !confirm('연수 대상을 고르지 않았습니다.\n빈 명단으로 등록할까요?')){ btn.disabled = false; return; }
         const rows = r.groups.filter(g => on.includes(g.id)).flatMap(g =>
           r.members.filter(m => m.group === g.id).map(m => ({ id: rid(), group: g.name, role: m.role, name: m.name })));
-        const ref = await addDoc(collection(db, 'trainings'), { ...data, type, rows, done: {}, miss: {}, archived: false, createdAt: serverTimestamp() });
+        const ref = await addDoc(collection(db, 'trainings'), { ...data, type, rows, year: S.app.year, done: {}, miss: {}, archived: false, createdAt: serverTimestamp() });
         dlg.close();
         location.hash = 't/' + ref.id;
       }
@@ -677,13 +714,14 @@ function paintInfo(){
   if(isOnline(t)) rows.push(['완료요구일', fmtDate(t.due)], ['교육기관', t.org], ['이수기간', t.period], ['이수증 제출 여부', t.certNote]);
   else rows.push(['일시', [fmtDate(t.due), t.time].filter(Boolean).join(' ')], ['장소', t.place]);
   el.innerHTML = `<div class="tags">
-      <span class="badge ${isOnline(t) ? 'on' : 'off'}">${isOnline(t) ? '온라인' : '오프라인'}</span>
+      <span class="badge ${isOnline(t) ? 'on' : 'off'}">${isOnline(t) ? '온라인' : '대면'}</span>
       <span class="badge ${t.needSign ? 'sign' : ''}">${t.needSign ? '서명' : '기록만'}</span>
       ${isPast(t) ? '<span class="badge ok">기한 지남</span>' : ''}${t.archived ? '<span class="badge">보관함</span>' : ''}
     </div>
     <h1>${esc(t.title)}</h1>
     <dl class="meta">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>
-    ${t.notice ? `<p class="noticebox"><b>안내 사항</b>${esc(t.notice)}</p>` : ''}`;
+    ${isOnline(t) && /^https?:\/\//i.test(t.link || '') ? `<a class="btn sitelink" href="${esc(t.link)}" target="_blank" rel="noopener noreferrer">연수원 바로 가기 ↗</a>` : ''}
+    ${t.notice ? `<p class="noticebox"><b>안내 사항</b>${linkify(t.notice)}</p>` : ''}`;
   const ai = $('#t-ai'); if(ai) ai.hidden = !fieldsOf(t).some(f => AI_KEYS.includes(f.key)) || !!t.archived;
   $('#guide').textContent = isOnline(t)
     ? '본인 줄을 눌러 이수 내용을 입력해 주세요. 명단에 없으면 아래 「명단에 없는 사람 추가」를 누릅니다.'
@@ -722,7 +760,7 @@ function paintRows(){
     return `<div class="tablewrap"><table class="reg">${head}<tbody>${body}</tbody></table></div>`;
   };
   if(!items.length) mount.innerHTML = `<p class="empty" style="border:1px solid var(--line);border-radius:10px;margin:0">${t.rows.length ? '조건에 맞는 사람이 없습니다.' : '명단이 비어 있습니다. 아래 버튼으로 사람을 추가해 주세요.'}</p>`;
-  else if(!isOnline(t) && items.length > 10){      /* 오프라인 서명 명단은 반으로 나눠 좌우에 놓는다 */
+  else if(!isOnline(t) && items.length > 10){      /* 대면 연수 서명 명단은 반으로 나눠 좌우에 놓는다 */
     const half = Math.ceil(items.length / 2);
     mount.innerHTML = `<div class="split2">${table(items.slice(0, half))}${table(items.slice(half))}</div>`;
   }else mount.innerHTML = table(items);
@@ -1060,17 +1098,17 @@ function renderSheets(){
   if(isOnline(t)){
     const fields = fieldsOf(t);
     const info = [['교육기관', t.org], ['이수기간', t.period], ['이수증 제출 여부', t.certNote]];
-    mount.innerHTML = `<section class="sheet online">
+    mount.innerHTML = `<section class="sheet online"><table class="pagewrap"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td>
       <h2>${esc(t.title)}</h2>
       <p class="sub"><span>연수 이수명단</span><span>${esc(school)}</span></p>
       <div class="infobox">${info.map((x, i) => `${i + 1}) ${x[0]}: ${esc(x[1] || '')}`).join('<br>')}</div>
-      <table><thead><tr><th class="no" style="width:5%">연번</th><th style="width:10%">직위/담당</th><th style="width:9%">성명</th>${fields.map(f => `<th${PRINT_W[f.key] && !(f.key === 'number' && !fields.some(x => x.key === 'course')) ? ` style="width:${PRINT_W[f.key]}"` : ''}>${f.label}</th>`).join('')}${t.needSign ? '<th style="width:11%">서명</th>' : ''}</tr></thead>
+      <table class="in"><thead><tr><th class="no" style="width:5%">연번</th><th style="width:10%">직위/담당</th><th style="width:9%">성명</th>${fields.map(f => `<th${PRINT_W[f.key] && !(f.key === 'number' && !fields.some(x => x.key === 'course')) ? ` style="width:${PRINT_W[f.key]}"` : ''}>${f.label}</th>`).join('')}${t.needSign ? '<th style="width:11%">서명</th>' : ''}</tr></thead>
       <tbody>${rows.map((r, i) => { const rec = S.recs[r.id];
         return `<tr><td class="no">${i + 1}</td><td>${esc(r.role)}</td><td>${esc(nameOf(r))}</td>${fields.map(f => `<td>${esc(rec?.values?.[f.key] ?? '')}</td>`).join('')}${t.needSign ? `<td class="sg">${signImg(r, 6.6)}</td>` : ''}</tr>`; }).join('')}</tbody></table>
-    </section>`;
+    </td></tr></tbody></table></section>`;
     return;
   }
-  /* 오프라인: 기존 시트처럼 좌우 2단 */
+  /* 대면 연수: 기존 시트처럼 좌우 2단 */
   const P = Math.min(35, Math.max(15, Math.ceil(rows.length / 2)));
   const rowH = Math.min(12, 228 / P);
   const pages = Math.max(1, Math.ceil(rows.length / (P * 2)));
@@ -1136,7 +1174,27 @@ async function viewAdmin(){
     return;
   }
   const aiKey = await getAiKey(true);
-  $app.innerHTML = top + `    <section class="card">
+  await loadRoster();
+  $app.innerHTML = top + `
+    <section class="card">
+      <h2>학년도</h2>
+      <p class="muted small" style="margin:-6px 0 10px">첫 화면에는 여기서 정한 학년도의 연수만 보입니다. 새 학년도로 바꾸면 지난 학년도 연수는 지워지지 않고 숨겨지며, 다시 그 학년도로 바꾸면 볼 수 있습니다.</p>
+      <form id="yearform" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" name="year" inputmode="numeric" pattern="\\d{4}" maxlength="4" required value="${esc(S.app.year)}" style="width:110px" aria-label="학년도"> 학년도
+        <button type="submit" class="primary">학년도 저장</button>
+      </form>
+    </section>
+    <section class="card">
+      <h2>학교 마크</h2>
+      <p class="muted small" style="margin:-6px 0 10px">마크를 넣으면 첫 화면의 제목 앞과 브라우저 탭에 표시됩니다. 배경이 투명한 PNG가 가장 깔끔합니다.</p>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div class="logo-prev" id="logo-prev">${okLogo(S.app.logo) ? `<img src="${S.app.logo}" alt="학교 마크">` : '없음'}</div>
+        <button type="button" id="logo-pick">마크 파일 고르기</button>
+        <button type="button" id="logo-del" class="danger" ${okLogo(S.app.logo) ? '' : 'disabled'}>마크 지우기</button>
+        <input type="file" id="logo-file" accept="image/*" hidden>
+      </div>
+    </section>`
+  + `    <section class="card">
       <h2>AI 이수증 읽기 설정 (Gemini)</h2>
       <p class="muted small" style="margin:-6px 0 10px">온라인 연수를 기록할 때 이수증 파일이나 캡처 화면을 넣으면 AI가 읽어 칸을 채워 줍니다. Google AI Studio에서 받은 Gemini API 키를 한 번만 넣어 두면 모든 선생님이 쓸 수 있습니다. 쓸 수 있는 모델은 자동으로 찾아 최신 것부터 차례로 시도합니다.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;max-width:720px">
@@ -1147,6 +1205,11 @@ async function viewAdmin(){
       <p id="ai-set-status" class="small" style="margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere" hidden></p>
     </section>
     <section class="card">
+      <h2>초기화</h2>
+      <p class="muted small" style="margin:-6px 0 10px">${esc(S.app.year)}학년도에 등록한 연수와 그 안의 기록, 서명을 모두 지웁니다. 보관함에 있는 것도 함께 지워지고 되돌릴 수 없습니다. 명부와 설정은 그대로 남습니다.</p>
+      <button type="button" class="danger" id="reset-year">${esc(S.app.year)}학년도 연수 모두 지우기</button>
+    </section>
+    <section class="card">
       <h2>관리자 비밀번호 바꾸기</h2>
       <form id="pwform" style="display:flex;gap:8px;flex-wrap:wrap;max-width:720px">
         <input type="password" name="pw" required minlength="4" autocomplete="off" placeholder="새 비밀번호 (4자 이상)" style="flex:1 1 220px;width:auto;font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px">
@@ -1154,6 +1217,48 @@ async function viewAdmin(){
       </form>
       <p class="muted small" style="margin:10px 0 0">비밀번호를 잊으면 파이어베이스 콘솔의 Firestore에서 settings 안의 admin 문서를 지우면 새로 만들 수 있습니다.</p>
     </section>`;
+  $('#yearform').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nv = e.target.elements.year.value.trim(), old = S.app.year;
+    if(!/^\d{4}$/.test(nv)) return alert('학년도는 2026처럼 숫자 네 자리로 적어 주세요.');
+    try{
+      /* 학년도 표시가 없는 예전 연수는 지금 학년도로 표시해 둔다 */
+      const all = await getDocs(collection(db, 'trainings'));
+      await Promise.all(all.docs.filter(d => !d.data().year).map(d => updateDoc(d.ref, { year: old })));
+      S.app.year = nv; await saveApp(); toast(`${nv}학년도로 저장했습니다`); await viewAdmin(); setBarH();
+    }catch(e2){ fail(e2, '학년도 저장'); }
+  });
+  $('#logo-pick').addEventListener('click', () => $('#logo-file').click());
+  $('#logo-file').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if(!file) return;
+    try{
+      const bmp = await createImageBitmap(file);
+      const k = Math.min(1, 240 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k));
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      S.app.logo = c.toDataURL('image/png'); await saveApp(); applyLogo(); toast('학교 마크를 저장했습니다'); await viewAdmin(); setBarH();
+    }catch(e2){ console.error(e2); alert('이 파일은 그림으로 읽을 수 없습니다. PNG나 JPG 파일을 골라 주세요.'); }
+  });
+  $('#logo-del').addEventListener('click', async () => {
+    if(!confirm('학교 마크를 지울까요?')) return;
+    try{ S.app.logo = ''; await saveApp(); applyLogo(); toast('학교 마크를 지웠습니다'); await viewAdmin(); setBarH(); }catch(e2){ fail(e2, '마크 지우기'); }
+  });
+  $('#reset-year').addEventListener('click', async () => {
+    try{
+      const all = await getDocs(collection(db, 'trainings'));
+      const mine = all.docs.filter(d => inYear(d.data()));
+      if(!mine.length) return alert(`${S.app.year}학년도에 등록된 연수가 없습니다.`);
+      if(!confirm(`${S.app.year}학년도 연수 ${mine.length}건과 그 안의 기록, 서명을 모두 지웁니다.\n되돌릴 수 없습니다. 계속할까요?`)) return;
+      if(prompt('정말 지우려면 아래 칸에 「초기화」라고 입력해 주세요.') !== '초기화') return toast('초기화를 취소했습니다');
+      for(const d of mine){
+        const recs = await getDocs(collection(db, 'trainings', d.id, 'records'));
+        await Promise.all(recs.docs.map(r => deleteDoc(r.ref)));
+        await deleteDoc(d.ref);
+      }
+      toast(`연수 ${mine.length}건을 지웠습니다`);
+    }catch(e2){ fail(e2, '초기화'); }
+  });
   $('#pwform').addEventListener('submit', async e => {
     e.preventDefault();
     try{ await setDoc(doc(db, 'settings', 'admin'), { hash: await pwHash(e.target.elements.pw.value), updatedAt: serverTimestamp() }); e.target.reset(); toast('비밀번호를 바꿨습니다'); }
