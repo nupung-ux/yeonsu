@@ -65,7 +65,8 @@
   .col h2,.mine-col h2{min-height:26px;display:flex;align-items:center;gap:8px;margin:0 0 10px}
   @media (max-width:1150px){.home-grid{grid-template-columns:1fr}.mine-col{position:static;order:-1}.mine-col .mine{max-height:none}}
   .t-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start}
-  .t-grid>#info{position:sticky;top:calc(var(--bar-h,60px) + 12px);max-height:calc(100vh - var(--bar-h,60px) - 24px);overflow:auto}
+  .t-left{position:sticky;top:calc(var(--bar-h,60px) + 12px);max-height:calc(100vh - var(--bar-h,60px) - 24px);overflow:auto;display:grid;gap:12px}
+  .t-left>.card{margin:0}
   .split2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
   @media (max-width:900px){.split2{grid-template-columns:1fr}}
   .item.on{background:#f7f3fe;border-color:#dfd3f6} .item.off{background:#fff6ea;border-color:#f2dcc0}
@@ -75,7 +76,7 @@
   .it-edit{padding:4px 9px;font-size:.82rem;color:var(--sub)}
   .lock{max-width:420px;margin:30px auto}
   .t-grid>.card{margin:0}
-  @media (max-width:1050px){.t-grid{grid-template-columns:1fr}.t-grid>#info{position:static;max-height:none}}
+  @media (max-width:1050px){.t-grid{grid-template-columns:1fr}.t-left{position:static;max-height:none}}
   .badge.warn{background:#fdecea;color:var(--warn)}
   table.reg td.c-role{width:1%;white-space:nowrap}
   table.reg td.nm{width:1%}
@@ -88,8 +89,11 @@
   .aibox.drag{background:#ece3fd}
   .aibox b{color:var(--on)}
   .aibox p{margin:4px 0 8px}
-  #ai-status{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
-  #ai-status.bad{color:var(--warn)} #ai-status.good{color:var(--ok);font-weight:700}
+  .ai-status{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+  .ai-status.bad{color:var(--warn)} .ai-status.good{color:var(--ok);font-weight:700}
+  .ai-pickrows{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .ai-pickrows button{padding:5px 10px;font-size:.86rem}
+  .ainote{background:#f1ebfd;border-radius:9px;padding:8px 10px;font-size:.88rem;color:var(--on);font-weight:700}
   /* 연수 상세 */
   .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
   dl.meta{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:12px 0 0;font-size:.93rem}
@@ -338,7 +342,7 @@ const S = {
   roster: null,          // { school, groups:[{id,name}], members:[{id,group,role,name}] }
   list: [],
   tid: null, t: null, recs: {}, unsubs: [],
-  saveTimer: null, saveFn: null, pad: null, sel: new Set(), adminOk: false
+  saveTimer: null, saveFn: null, pad: null, sel: new Set(), adminOk: false, pendingAI: null
 };
 function scheduleSave(fn){ S.saveFn = fn; clearTimeout(S.saveTimer); S.saveTimer = setTimeout(flushSave, 600); }
 async function flushSave(){
@@ -372,7 +376,7 @@ function saveRoster(){
 async function route(){
   await flushSave();
   S.unsubs.forEach(u => u()); S.unsubs = []; clearTimeout(syncTimer);
-  S.tid = null; S.t = null; S.recs = {}; S.sel.clear();
+  S.tid = null; S.t = null; S.recs = {}; S.sel.clear(); S.pendingAI = null;
   const h = decodeURIComponent(location.hash.slice(1));
   try{
     if(h.startsWith('t/')){ const [tid, rowId] = h.slice(2).split('/'); await viewTraining(tid, rowId); }
@@ -626,7 +630,18 @@ async function viewTraining(id, openRow){
         <button class="danger" data-act="del">삭제</button>
       </div></div>
     <div class="t-grid no-print">
-    <section class="card" id="info"></section>
+    <div class="t-left">
+      <section class="card" id="info"></section>
+      <section class="aibox" id="t-ai" hidden>
+        <b>AI로 이수증 읽어 자동 입력</b>
+        <p class="muted small">이수증 파일(사진, PDF)을 고르거나 여기로 끌어다 놓으세요. 캡처한 화면은 이 화면에서 Ctrl+V로 붙여넣으면 됩니다. 이수증의 이름으로 명단에서 본인을 찾아 입력 창을 채워 줍니다.</p>
+        <button type="button" class="ai-pick">이수증 파일 고르기</button>
+        <input type="file" class="ai-file" accept="image/*,application/pdf" hidden>
+        <p class="ai-status small" hidden></p>
+        <div class="ai-pickrows" hidden></div>
+        <p class="muted small" style="margin:10px 0 0">넣은 이수증은 이 앱에 저장되지 않고, 읽은 뒤 바로 버려집니다. 저장되는 것은 확인 후 「저장」을 누른 글자 내용뿐입니다.</p>
+      </section>
+    </div>
     <section class="card">
       <div class="bar">
         <input type="search" id="q" placeholder="이름이나 직위로 찾기" aria-label="이름이나 직위로 찾기">
@@ -642,6 +657,7 @@ async function viewTraining(id, openRow){
   $('#q').addEventListener('input', paintRows);
   $('#only-todo').addEventListener('change', paintRows);
   paintInfo(); paintRows();
+  setupPageAI();
 
   S.unsubs.push(onSnapshot(doc(db, 'trainings', id), s => {
     if(!s.exists()) return;
@@ -668,6 +684,7 @@ function paintInfo(){
     <h1>${esc(t.title)}</h1>
     <dl class="meta">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>
     ${t.notice ? `<p class="noticebox"><b>안내 사항</b>${esc(t.notice)}</p>` : ''}`;
+  const ai = $('#t-ai'); if(ai) ai.hidden = !fieldsOf(t).some(f => AI_KEYS.includes(f.key)) || !!t.archived;
   $('#guide').textContent = isOnline(t)
     ? '본인 줄을 눌러 이수 내용을 입력해 주세요. 명단에 없으면 아래 「명단에 없는 사람 추가」를 누릅니다.'
     : '본인 줄을 눌러 서명해 주세요. 명단에 없으면 아래 「명단에 없는 사람 추가」를 누릅니다.';
@@ -714,7 +731,9 @@ function paintRows(){
 }
 
 /* 한 사람의 기록, 서명 창 */
-function openEntry(row){
+function openEntry(row, prefill){
+  if(!prefill && S.pendingAI){ prefill = S.pendingAI; }
+  S.pendingAI = null;
   const t = S.t, isNew = !row;
   const rec = row ? S.recs[row.id] : null;
   const fields = fieldsOf(t);
@@ -728,12 +747,13 @@ function openEntry(row){
         <label class="f">구분 <select name="group">${groups.map(g => `<option>${esc(g)}</option>`).join('')}</select></label>
         <label class="f">직위/담당 <input type="text" name="role" placeholder="예: 3-2, 조리원"></label></div>` : ''}
       <label class="f">성명<span class="req">*</span> <input type="text" name="name" required autocomplete="off" value="${esc(row ? nameOf(row) : '')}"></label>
-      ${fields.some(f => AI_KEYS.includes(f.key)) ? `<div class="aibox" id="aibox">
+      ${prefill ? '<p class="ainote">AI가 이수증에서 읽어 채운 내용입니다. 맞는지 확인한 뒤 저장해 주세요.</p>' : ''}
+      ${!prefill && fields.some(f => AI_KEYS.includes(f.key)) ? `<div class="aibox" id="aibox">
         <b>AI로 이수증 읽어 자동 입력</b>
-        <p class="muted small">이수증 파일(사진, PDF)을 고르거나 끌어다 놓으세요. 캡처한 화면은 이 창에서 Ctrl+V로 붙여넣으면 됩니다.</p>
-        <button type="button" id="ai-pick">이수증 파일 고르기</button>
-        <input type="file" id="ai-file" accept="image/*,application/pdf" hidden>
-        <p id="ai-status" class="small" hidden></p>
+        <p class="muted small">이수증 파일(사진, PDF)을 고르거나 끌어다 놓으세요. 캡처한 화면은 이 창에서 Ctrl+V로 붙여넣으면 됩니다. 넣은 이수증은 저장되지 않고 읽은 뒤 바로 버려집니다.</p>
+        <button type="button" class="ai-pick">이수증 파일 고르기</button>
+        <input type="file" class="ai-file" accept="image/*,application/pdf" hidden>
+        <p class="ai-status small" hidden></p>
       </div>` : ''}
       ${fields.map(f => f.options
         ? `<label class="f">${f.label} <select name="v_${f.key}">${f.options.map(o => `<option ${(rec?.values?.[f.key] ?? f.options[0]) === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`
@@ -758,6 +778,11 @@ function openEntry(row){
   const pad = t.needSign ? setupPad($('#pad'), $('#hint')) : null;
   if(pad) $('#pad-clear').addEventListener('click', () => pad.clear());
   const showErr = m => { $err.textContent = m; $err.hidden = false; };
+  if(prefill){
+    AI_KEYS.forEach(k => { const el = form.elements['v_' + k], v = String(prefill[k] ?? '').trim(); if(el && v) el.value = v; });
+    const nm = String(prefill.name ?? '').trim();
+    if(nm && !form.elements.name.value.trim()) form.elements.name.value = nm;
+  }
   if($('#aibox')) setupCertAI(form);
 
   form.addEventListener('submit', async e => {
@@ -930,49 +955,98 @@ const CERT_PROMPT = `첨부한 것은 한국의 교원 또는 공무원 연수 �
 아래 항목을 문서에 적힌 그대로 찾아 JSON 객체 하나로만 답하세요. 문서에 없는 항목은 빈 문자열("")로 두고, 추측해서 채우지 마세요.
 {
   "name": "이수한 사람의 성명",
-  "course": "연수명(과정명)",
-  "period": "연수 기간 또는 이수 기간. 예: 2026.11.3.~2026.11.7.",
-  "number": "이수 번호(이수증 번호, 발급 번호). 문서에 적힌 그대로",
+  "course": "과정명(연수명). 여러 줄로 나뉘어 있으면 한 줄로 이어서",
+  "period": "연수 기간(이수 기간). 예: 2026.10.29.~2026.11.02.",
+  "number": "이수 번호. 보통 문서 맨 위에 '제 ○○-○○-2026-123456 호'처럼 적혀 있음. '제'와 '호'를 포함해 적힌 그대로",
   "hours": "이수 시간. 예: 15시간"
-}`;
-function setupCertAI(form){
-  const box = $('#aibox'), st = $('#ai-status'), fileInput = $('#ai-file');
-  const say = (msg, cls) => { st.textContent = msg; st.className = 'small ' + (cls || 'muted'); st.hidden = false; };
+}
+생년월일, 근무 기관 같은 그 밖의 내용은 답에 넣지 마세요.`;
+/* 이수증 넣는 상자 공용 처리: 파일 고르기, 끌어다 놓기, 붙여넣기 → Gemini로 읽어 onData에 넘긴다.
+   파일은 이 함수 안에서만 쓰고 어디에도 저장하지 않는다 (읽은 뒤 참조를 버린다) */
+function wireCertBox(box, pasteTarget, onData, skip){
+  const st = box.querySelector('.ai-status'), fileInput = box.querySelector('.ai-file'), pick = box.querySelector('.ai-pick');
+  const say = (msg, cls) => { st.textContent = msg; st.className = 'ai-status small ' + (cls || 'muted'); st.hidden = false; };
   let busy = false;
   async function run(file){
     if(busy || !file) return;
     if(!file.type.startsWith('image/') && file.type !== 'application/pdf') return say('사진(JPG, PNG 등)이나 PDF 파일만 읽을 수 있습니다.', 'bad');
     if(file.size > 15 * 1024 * 1024) return say('파일이 너무 큽니다. 15MB 이하 파일을 올려 주세요.', 'bad');
-    busy = true; $('#ai-pick').disabled = true;
+    busy = true; pick.disabled = true;
     try{
       say('이수증을 읽는 중입니다…');
       const key = await getAiKey();
       if(!key){ say('AI 키가 아직 등록되지 않았습니다. 담당 선생님께 알려 주세요. (첫 화면 아래 「관리자 설정」에서 Gemini API 키를 넣어야 합니다)', 'bad'); return; }
-      const part = await fileToPart(file);
+      let part = await fileToPart(file);
+      file = null;
       const { data, model } = await geminiJSON(key, [part, { text: CERT_PROMPT }], m => say(`이수증을 읽는 중입니다… (${m})`));
-      const filled = [];
-      AI_KEYS.forEach(k => {
-        const el = form.elements['v_' + k], v = String(data[k] ?? '').trim();
-        if(el && v){ el.value = v; filled.push(fieldLabel(k)); }
-      });
-      const nm = String(data.name ?? '').trim(), cur = form.elements.name.value.trim();
-      let warn = '';
-      if(nm && !cur){ form.elements.name.value = nm; filled.unshift('성명'); }
-      else if(nm && norm(nm) !== norm(cur)) warn = `\n이수증의 이름은 「${nm}」입니다. 본인 이수증이 맞는지 확인해 주세요.`;
-      if(filled.length) say(`채운 칸: ${filled.join(', ')}. 내용을 확인한 뒤 저장해 주세요. (${model})` + warn, warn ? 'bad' : 'good');
-      else say('이수증에서 해당하는 내용을 찾지 못했습니다. 직접 입력해 주세요.' + warn, 'bad');
+      part = null;                                   // 이수증 내용은 여기서 버린다
+      const clean = {}; ['name', ...AI_KEYS].forEach(k => { clean[k] = String(data[k] ?? '').trim(); });
+      onData(clean, model, say);
     }catch(e){ console.error(e); say('AI로 읽지 못했습니다. 직접 입력해 주세요.\n' + (e.message || ''), 'bad'); }
-    finally{ busy = false; $('#ai-pick').disabled = false; }
+    finally{ busy = false; pick.disabled = false; }
   }
-  $('#ai-pick').addEventListener('click', () => fileInput.click());
+  pick.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => { const f = fileInput.files[0]; fileInput.value = ''; run(f); });
-  form.addEventListener('paste', e => {
+  const onPaste = e => {
+    if(skip && skip()) return;
     const it = [...(e.clipboardData ? e.clipboardData.items : [])].find(i => i.kind === 'file' && (i.type.startsWith('image/') || i.type === 'application/pdf'));
     if(it){ e.preventDefault(); run(it.getAsFile()); }
-  });
+  };
+  pasteTarget.addEventListener('paste', onPaste);
   box.addEventListener('dragover', e => { e.preventDefault(); box.classList.add('drag'); });
   box.addEventListener('dragleave', () => box.classList.remove('drag'));
   box.addEventListener('drop', e => { e.preventDefault(); box.classList.remove('drag'); run(e.dataTransfer.files[0]); });
+  return () => pasteTarget.removeEventListener('paste', onPaste);
+}
+/* 기록 창 안의 상자: 지금 열린 사람의 칸을 채운다 */
+function setupCertAI(form){
+  wireCertBox($('#aibox'), form, (data, model, say) => {
+    const filled = [];
+    AI_KEYS.forEach(k => { const el = form.elements['v_' + k]; if(el && data[k]){ el.value = data[k]; filled.push(fieldLabel(k)); } });
+    const cur = form.elements.name.value.trim();
+    let warn = '';
+    if(data.name && !cur){ form.elements.name.value = data.name; filled.unshift('성명'); }
+    else if(data.name && norm(data.name) !== norm(cur)) warn = `\n이수증의 이름은 「${data.name}」입니다. 본인 이수증이 맞는지 확인해 주세요.`;
+    if(filled.length) say(`채운 칸: ${filled.join(', ')}. 내용을 확인한 뒤 저장해 주세요. (${model})` + warn, warn ? 'bad' : 'good');
+    else say('이수증에서 해당하는 내용을 찾지 못했습니다. 직접 입력해 주세요.' + warn, 'bad');
+  });
+}
+/* 연수 화면 왼쪽의 상자: 이수증의 이름으로 명단에서 사람을 찾아 기록 창을 채워서 연다 */
+function setupPageAI(){
+  const box = $('#t-ai'); if(!box) return;
+  const picks = box.querySelector('.ai-pickrows');
+  const choose = (label, rows, data, withNew) => {
+    picks.innerHTML = rows.map(r => `<button type="button" data-pick="${esc(r.id)}">${esc([r.role, nameOf(r)].filter(Boolean).join(' '))}</button>`).join('')
+      + (withNew ? '<button type="button" data-pick="">명단에 새로 추가</button>' : '');
+    picks.hidden = false;
+    picks.onclick = e => {
+      const b = e.target.closest('[data-pick]'); if(!b) return;
+      const row = S.t.rows.find(r => r.id === b.dataset.pick) || null;
+      picks.hidden = true; S.pendingAI = null; openEntry(row, data);
+    };
+  };
+  const off = wireCertBox(box, document, (data, model, say) => {
+    picks.hidden = true; S.pendingAI = null;
+    if(!AI_KEYS.some(k => data[k]) && !data.name) return say('이수증에서 내용을 찾지 못했습니다. 명단에서 본인 줄을 눌러 직접 입력해 주세요.', 'bad');
+    const read = AI_KEYS.filter(k => data[k] && fieldsOf(S.t).some(f => f.key === k)).map(fieldLabel).join(', ');
+    if(!data.name){
+      S.pendingAI = data;
+      return say(`이수증에서 이름은 찾지 못했습니다. 읽은 내용: ${read || '없음'}\n오른쪽 명단에서 본인 줄을 누르면 읽은 내용이 채워집니다. (${model})`, 'bad');
+    }
+    const same = S.t.rows.filter(r => norm(nameOf(r)) === norm(data.name));
+    if(same.length === 1){
+      say(`「${data.name}」 님을 명단에서 찾았습니다. 입력 창에서 확인한 뒤 저장해 주세요. (${model})`, 'good');
+      return openEntry(same[0], data);
+    }
+    if(same.length > 1){
+      say(`「${data.name}」 님이 명단에 ${same.length}명 있습니다. 본인을 골라 주세요. (${model})`, 'bad');
+      return choose('', same, data, false);
+    }
+    S.pendingAI = data;
+    say(`명단에 「${data.name}」 님의 이름이 없습니다. 읽은 내용: ${read || '없음'}\n오른쪽 명단에서 본인 직위 줄을 누르면 읽은 내용과 이름이 채워집니다. 명단에 아예 없는 분이면 아래 버튼을 눌러 주세요. (${model})`, 'bad');
+    choose('', [], data, true);
+  }, () => !!document.querySelector('dialog[open]'));   /* 창이 열려 있을 때의 붙여넣기는 그 창이 처리한다 */
+  S.unsubs.push(off);
 }
 
 /* ───────── 인쇄용 등록부 ───────── */
