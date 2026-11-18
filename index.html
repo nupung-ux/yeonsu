@@ -925,29 +925,55 @@ function setupPad(canvas, hint){
   const rect = canvas.getBoundingClientRect();
   canvas.width = Math.round(rect.width * dpr);
   canvas.height = Math.round(rect.height * dpr);
-  const ctx = canvas.getContext('2d');
-  ctx.lineWidth = 2.8 * dpr; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111'; ctx.fillStyle = '#111';
-  let drawing = false, last = null, ink = false;
+  const ctx = canvas.getContext('2d', { desynchronized: true }) || canvas.getContext('2d');
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111'; ctx.fillStyle = '#111';
+  /* 펜처럼 부드럽게: 받은 점들을 곡선으로 잇고, 빠르게 그으면 가늘게 천천히 그으면 굵게 */
+  const W_MAX = 3.3 * dpr, W_MIN = 1.5 * dpr;
+  let drawing = false, ink = false, pts = [], width = W_MAX;
   const pos = e => {
     const r = canvas.getBoundingClientRect();
-    return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height };
+    return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height, t: e.timeStamp };
   };
+  const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  function add(p){
+    const prev = pts[pts.length - 1];
+    const d = Math.hypot(p.x - prev.x, p.y - prev.y);
+    if(d < 0.8 * dpr) return;                                   // 거의 안 움직인 점은 건너뛴다 (떨림 줄이기)
+    const speed = d / dpr / Math.max(1, p.t - prev.t);          // 화면 픽셀 / 밀리초
+    const target = Math.max(W_MIN, Math.min(W_MAX, W_MAX - speed * 0.9 * dpr));
+    width = width * 0.75 + target * 0.25;
+    pts.push(p);
+    const n = pts.length;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    if(n === 2){ const m = mid(pts[0], pts[1]); ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(m.x, m.y); }
+    else{ const m1 = mid(pts[n - 3], pts[n - 2]), m2 = mid(pts[n - 2], pts[n - 1]); ctx.moveTo(m1.x, m1.y); ctx.quadraticCurveTo(pts[n - 2].x, pts[n - 2].y, m2.x, m2.y); }
+    ctx.stroke();
+  }
   canvas.addEventListener('pointerdown', e => {
+    if(e.button > 0) return;
     e.preventDefault();
     try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
-    drawing = true; last = pos(e); ink = true; hint.hidden = true;
-    ctx.beginPath(); ctx.arc(last.x, last.y, ctx.lineWidth / 2, 0, Math.PI * 2); ctx.fill();
+    drawing = true; ink = true; hint.hidden = true; width = W_MAX * 0.85;
+    pts = [pos(e)];
+    ctx.beginPath(); ctx.arc(pts[0].x, pts[0].y, width / 2, 0, Math.PI * 2); ctx.fill();
   });
   canvas.addEventListener('pointermove', e => {
     if(!drawing) return;
     e.preventDefault();
-    const p = pos(e);
-    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-    last = p;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    (evs.length ? evs : [e]).forEach(ev => add(pos(ev)));       // 브라우저가 묶어서 준 중간 점까지 모두 쓴다
   });
-  const stop = () => { drawing = false; };
+  const stop = () => {
+    if(!drawing) return;
+    drawing = false;
+    const n = pts.length;
+    if(n >= 2){ const m = mid(pts[n - 2], pts[n - 1]); ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(pts[n - 1].x, pts[n - 1].y); ctx.stroke(); }
+    pts = [];
+  };
   canvas.addEventListener('pointerup', stop);
   canvas.addEventListener('pointercancel', stop);
+  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });   // 서명 중 화면이 따라 움직이지 않게
   return {
     hasInk: () => ink,
     clear(){ ctx.clearRect(0, 0, canvas.width, canvas.height); ink = false; hint.hidden = false; },
@@ -962,7 +988,7 @@ function setupPad(canvas, hint){
       const m = Math.round(6 * dpr);
       x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(w - 1, x1 + m); y1 = Math.min(h - 1, y1 + m);
       const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-      const s = Math.min(480 / bw, 200 / bh, 2.5);
+      const s = Math.min(640 / bw, 260 / bh, 2);
       const out = document.createElement('canvas');
       out.width = Math.max(1, Math.round(bw * s)); out.height = Math.max(1, Math.round(bh * s));
       const o = out.getContext('2d'); o.imageSmoothingQuality = 'high';
