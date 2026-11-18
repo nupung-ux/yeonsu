@@ -3,60 +3,190 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>연수등록부 서명</title>
+<meta name="robots" content="noindex">
+<title>연수 등록부</title>
 <style>
   :root{
     --ink:#1c2733; --sub:#5d6978; --line:#d7dde6; --bg:#f3f5f8; --card:#ffffff;
-    --accent:#1d5fbf; --accent-dark:#174c99; --ok:#17794d; --warn:#b3261e;
+    --accent:#1d5fbf; --accent-dark:#174c99; --ok:#17794d; --ok-bg:#e4f4ea; --warn:#b3261e;
+    --on:#6b3fb5; --on-bg:#efe9fb; --off:#b3560b; --off-bg:#fdefdf;
   }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--bg);color:var(--ink);line-height:1.55;
     font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
-  main{max-width:540px;margin:0 auto;padding:20px 16px 24px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 20px}
-  .eyebrow{margin:0 0 2px;font-size:.8rem;font-weight:700;letter-spacing:.08em;color:var(--accent)}
-  h1{margin:0;font-size:1.3rem;line-height:1.35;text-wrap:balance}
-  .meta{margin:4px 0 0;color:var(--sub);font-size:.92rem}
-  hr{border:0;border-top:1px solid var(--line);margin:18px 0}
-  label{display:block;font-weight:700;margin-bottom:8px}
-  input[type=text]{width:100%;font:inherit;font-size:1.15rem;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:inherit}
-  input[type=text]:focus{outline:3px solid #c9dcf7;border-color:var(--accent)}
-  button{font:inherit;font-weight:700;border-radius:12px;border:1.5px solid var(--line);background:#fff;color:var(--ink);padding:12px 16px;cursor:pointer}
-  button:focus-visible{outline:3px solid #c9dcf7}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  button.primary:active{background:var(--accent-dark)}
-  button:disabled{opacity:.55;cursor:default}
-  .full{width:100%;margin-top:12px;font-size:1.05rem;padding:14px}
-  .err{color:var(--warn);font-weight:700;margin:10px 0 0}
-  .note{background:#fff7e0;border:1px solid #ecd58b;border-radius:10px;padding:10px 12px;font-size:.92rem;margin:0 0 12px}
-  .choices{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-  .choices button{width:100%;text-align:left;display:flex;justify-content:space-between;gap:12px;align-items:center}
-  .choices .role{color:var(--sub);font-weight:500}
-  .who{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
-  .who b{font-size:1.25rem}
-  .who span{color:var(--sub)}
-  .padwrap{position:relative;border:2px dashed #9fb0c6;border-radius:14px;background:#fff;overflow:hidden}
-  canvas{display:block;width:100%;aspect-ratio:2/1;touch-action:none;cursor:crosshair}
-  .hint{position:absolute;inset:0;display:grid;place-items:center;color:#a6b1c0;pointer-events:none;font-size:1.05rem}
+  main{max-width:1080px;margin:0 auto;padding:20px 16px 24px}
+  h1{margin:0;font-size:1.45rem;line-height:1.3;text-wrap:balance}
+  h2{margin:0 0 12px;font-size:1.08rem}
+  a{color:var(--accent)}
   [hidden]{display:none!important}
-  .btns{display:flex;gap:8px;margin-top:12px}
-  .btns .primary{flex:1}
-  .done{text-align:center}
-  .done .check{width:56px;height:56px;border-radius:50%;background:#e2f4ea;color:var(--ok);display:grid;place-items:center;margin:4px auto 10px;font-size:1.8rem;font-weight:700}
-  .done img{max-width:70%;max-height:110px;margin:10px auto 0;display:block}
-  .loading{color:var(--sub);text-align:center;padding:30px 0}
+  .muted{color:var(--sub)} .small{font-size:.88rem}
+  .top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .btns{display:flex;flex-wrap:wrap;gap:8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+  button,.btn{font:inherit;font-size:.93rem;font-weight:700;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink);padding:8px 13px;cursor:pointer;text-decoration:none;display:inline-block}
+  button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,tr:focus-visible,a:focus-visible{outline:3px solid #c9dcf7;outline-offset:1px}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{background:var(--accent-dark)}
+  button.big{font-size:1.02rem;padding:11px 20px}
+  button.danger{color:var(--warn)}
+  button:disabled{opacity:.5;cursor:default}
+  input[type=text],input[type=date],input[type=search],textarea,select{font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px;background:#fff;color:inherit;width:100%}
+  label.f{display:block;font-weight:700;font-size:.9rem}
+  label.f>input,label.f>select{margin-top:4px;font-weight:400}
+  .chk{display:inline-flex;gap:6px;align-items:center;font-size:.95rem;cursor:pointer;white-space:nowrap}
+  .chk input{width:17px;height:17px;margin:0}
+  .notice{background:#fff7e0;border:1px solid #ecd58b;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:.93rem}
+  .empty{text-align:center;color:var(--sub);padding:30px 12px}
+  .badge{display:inline-block;font-size:.78rem;font-weight:700;padding:2px 9px;border-radius:999px;background:#e9edf2;color:var(--sub);white-space:nowrap}
+  .badge.on{background:var(--on-bg);color:var(--on)} .badge.off{background:var(--off-bg);color:var(--off)}
+  .badge.sign{background:#e6eefb;color:var(--accent-dark)} .badge.ok{background:var(--ok-bg);color:var(--ok)}
+
+  /* 첫 화면 */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  @media (max-width:820px){.cols{grid-template-columns:1fr}}
+  .col h2{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .col h2 small{font-weight:500;color:var(--sub);font-size:.85rem}
+  .list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .item{display:grid;grid-template-columns:1fr auto;gap:4px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-decoration:none;color:inherit}
+  a.item:hover{border-color:#9db7e0}
+  .item.past{background:#f1f8f3;border-color:#cfe3d6}
+  .it-title{font-weight:700;overflow-wrap:anywhere}
+  .it-meta{grid-column:1;color:var(--sub);font-size:.86rem}
+  .it-side{grid-row:1/3;grid-column:2;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px}
+  .prog{font-weight:700;font-variant-numeric:tabular-nums;font-size:.92rem}
+  .foot-links{text-align:center;margin-top:18px;font-size:.9rem}
+
+  /* 연수 상세 */
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+  dl.meta{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:12px 0 0;font-size:.93rem}
+  dl.meta dt{color:var(--sub);white-space:nowrap} dl.meta dd{margin:0;overflow-wrap:anywhere}
+  .bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:8px}
+  .bar input[type=search]{flex:1 1 200px;width:auto}
+  .count{font-weight:700;font-variant-numeric:tabular-nums;margin-left:auto}
+  .guide{margin:0 0 10px;color:var(--sub);font-size:.9rem}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+  table.reg,table.edit{border-collapse:collapse;width:100%}
+  table.reg th,table.reg td,table.edit th,table.edit td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:middle}
+  table.reg thead th,table.edit thead th{background:#f7f9fb;font-size:.85rem;white-space:nowrap}
+  table.reg tbody tr{cursor:pointer}
+  table.reg tbody tr:hover{background:#f5f9ff}
+  table.reg tbody tr.done{background:#f6fbf8}
+  table.reg tbody tr:last-child td,table.edit tbody tr:last-child td{border-bottom:0}
+  table.reg td{white-space:nowrap}
+  table.reg td.nm{font-weight:700}
+  table.reg td.sg img{height:30px;max-width:90px;object-fit:contain;vertical-align:middle}
+  .c-no{width:46px;text-align:center!important;color:var(--sub);font-variant-numeric:tabular-nums}
+  .c-st{width:1%;text-align:right!important}
+  .grp-row td{background:#eef2f7;font-weight:700;font-size:.85rem;color:var(--sub);cursor:default;padding:4px 10px!important}
+  .editbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+  /* 명부 관리 */
+  table.edit{min-width:520px}
+  table.edit td{padding:5px 6px}
+  table.edit input,table.edit select{padding:6px 8px}
+  .c-grp{width:130px} .c-tools{width:150px;white-space:nowrap;text-align:right!important}
+  .c-tools button{padding:4px 8px;font-size:.82rem}
+  .groups{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .grp{display:flex;align-items:center;gap:4px;border:1.5px solid var(--line);border-radius:10px;padding:3px 4px 3px 8px;background:#fff}
+  .grp input{border:0;padding:4px;width:7.5em;font-weight:700}
+  .grp small{color:var(--sub);white-space:nowrap}
+  .grp button{border:0;padding:2px 7px;color:var(--sub)}
+
+  /* 대화상자 */
+  dialog{border:0;border-radius:16px;padding:22px;width:min(560px,94vw);max-height:92vh;overflow:auto;color:inherit;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  dialog::backdrop{background:rgba(20,30,45,.45)}
+  dialog h2{font-size:1.18rem}
+  .stack{display:grid;gap:12px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:520px){.two{grid-template-columns:1fr}}
+  .dbtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .seg label{border:1.5px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-weight:700;cursor:pointer}
+  .seg input{position:absolute;opacity:0;pointer-events:none}
+  .seg label:has(input:checked){border-color:var(--accent);background:#eaf1fc;color:var(--accent-dark)}
+  .seg label:has(input:disabled){opacity:.55;cursor:default}
+  .seg label:has(input:focus-visible){outline:3px solid #c9dcf7}
+  fieldset{border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px;margin:0;min-width:0}
+  legend{font-weight:700;font-size:.9rem;padding:0 4px}
+  .checks{display:flex;flex-wrap:wrap;gap:8px 16px}
+  form.t-online .only-off, form.t-offline .only-on{display:none}
+  textarea{min-height:190px;resize:vertical}
+  .who{font-size:1.15rem;font-weight:700;margin:0 0 12px}
+  .who span{font-weight:500;color:var(--sub);font-size:.95rem;margin-left:6px}
+  .padwrap{position:relative;border:2px dashed #9fb0c6;border-radius:12px;background:#fff;overflow:hidden}
+  canvas{display:block;width:100%;aspect-ratio:2.2/1;touch-action:none;cursor:crosshair}
+  .hint{position:absolute;inset:0;display:grid;place-items:center;color:#a6b1c0;pointer-events:none}
+  .cursign{display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--sub);margin-bottom:8px}
+  .cursign img{height:40px;max-width:140px;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:#fff;padding:2px}
+  .err{color:var(--warn);font-weight:700;margin:10px 0 0}
+  #dlg-qr{text-align:center}
+  #dlg-qr img{width:min(400px,76vw);height:auto;image-rendering:pixelated}
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1c2733;color:#fff;padding:9px 16px;border-radius:999px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+  #toast.on{opacity:1}
   footer{text-align:center;color:#9aa5b3;font-size:.78rem;padding:0 0 24px}
+
+  /* 인쇄용 등록부 */
+  .print-only{display:none}
+  .sheet{color:#000;background:#fff}
+  .sheet h2{text-align:center;font-size:18pt;margin:0 0 2mm;line-height:1.3;overflow-wrap:anywhere}
+  .sheet .sub{display:flex;justify-content:space-between;gap:6mm;font-size:10.5pt;margin:0 0 2mm}
+  .sheet .infobox{border:.3mm solid #000;padding:2.5mm 3.5mm;font-size:10.5pt;margin:0 0 3mm;line-height:1.7}
+  .sheet table{border-collapse:collapse;width:100%;font-size:10pt}
+  .sheet table.fixed{table-layout:fixed}
+  .sheet th,.sheet td{border:.3mm solid #000;text-align:center;padding:0 1mm;line-height:1.2;word-break:keep-all;overflow-wrap:anywhere;overflow:hidden}
+  .sheet th{height:8mm;background:#eef0f3;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet .no{white-space:nowrap;padding:0;overflow-wrap:normal;font-variant-numeric:tabular-nums}
+  .sheet .split{border-left:.7mm solid #000}
+  .sheet td.sg{padding:.4mm}
+  .sheet td.sg img{display:block;margin:0 auto;max-width:100%;object-fit:contain}
+  .sheet.online td{height:7.6mm}
+  .sheet.online tr{break-inside:avoid}
+  .sheet .pg{text-align:center;font-size:9pt;margin:2mm 0 0}
+  @page{size:A4 portrait;margin:12mm}
+  @media print{
+    body{background:#fff}
+    main{max-width:none;padding:0}
+    .no-print,footer,#toast,dialog{display:none!important}
+    .print-only{display:block}
+    .sheet.offline{break-after:page}
+    .sheet.offline:last-child{break-after:auto}
+  }
 </style>
 </head>
 <body>
-<main><div class="card" id="app"><p class="loading">불러오는 중입니다…</p></div></main>
+<main id="app"><p class="empty">불러오는 중입니다…</p></main>
 <footer>made by 너펑이</footer>
 
+<dialog id="dlg-form"></dialog>
+<dialog id="dlg-entry"></dialog>
+<dialog id="dlg-bulk">
+  <h2>명부 한꺼번에 붙여넣기</h2>
+  <div class="stack">
+    <label class="f">어느 구분에 넣을까요? <select id="bulk-group"></select></label>
+    <p class="muted small" style="margin:0">한 줄에 한 명씩 「직위/담당 이름」 순서로 적습니다. 엑셀이나 한글 표에서 두 칸(직위, 이름)을 복사해 그대로 붙여넣어도 됩니다. 이름 없이 직위만 적어도 됩니다.</p>
+    <textarea id="bulk-text" placeholder="교장	김바른&#10;교감	이올바&#10;1-1	박하늘"></textarea>
+  </div>
+  <div class="dbtns">
+    <button type="button" data-close>취소</button>
+    <button type="button" id="bulk-ok" class="primary">명부에 추가</button>
+  </div>
+</dialog>
+<dialog id="dlg-qr">
+  <h2 id="qr-title"></h2>
+  <div id="qr-big"></div>
+  <p class="muted" style="margin:10px 0 0">휴대폰 카메라로 QR 코드를 비추면 이 연수의 등록부가 열립니다.</p>
+  <div class="dbtns" style="justify-content:center"><button type="button" data-close>닫기</button></div>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, getDocs, collection,
+         onSnapshot, query, orderBy, serverTimestamp, getCountFromServer, arrayUnion, arrayRemove }
+  from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAB1pvTKdz4I2e2jVDWfsD93tNroSDS6t8",
@@ -66,19 +196,38 @@ const firebaseConfig = {
   messagingSenderId: "512584387404",
   appId: "1:512584387404:web:6b021a133750417a661de9"
 };
-
 const fb = initializeApp(firebaseConfig);
 const auth = getAuth(fb);
 const db = getFirestore(fb);
-
-const $app = document.getElementById('app');
-const regId = new URLSearchParams(location.search).get('id');
-let reg = null;
 let uid = null;
 
+/* ───────── 기본값 ───────── */
+const DEFAULT_SCHOOL = '화성바른초등학교';
+const DEFAULT_GROUPS = [{ id: 'g_teacher', name: '교원' }, { id: 'g_staff', name: '교직원' }, { id: 'g_vol', name: '봉사자' }];
+/* 기존 구글 시트(2026 연수 등록부)의 직위/담당 순서 */
+const SEED = {
+  g_teacher: ['교장','교감','1-1','1-2','1-3','1-4','1-5','1-6','2-1','2-2','2-3','2-4','2-5','3-1','3-2','3-3','3-4','4-1','4-2','4-3','4-4','5-1','5-2','5-3','5-4','6-1','6-2','6-3','6-4','과학','과학, 통합','체육, 통합','영어, 통합','영어, 통합','유5','유4','유3','유치원방과후','유치원방과후','유치원방과후','보건','영양','사서','특수','상담'],
+  g_staff: ['행정실장','주무관','행정계장','주무관','시설주무관','늘봄실장','돌봄전담사','돌봄전담사','돌봄전담사','늘봄실무사','행정실무사','행정실무사','조리사','조리원','조리원','조리원','조리원','조리원','시설 미화원'],
+  g_vol: ['배움터 지킴이']
+};
+/* 온라인 연수에서 받을 수 있는 입력 항목 */
+const FIELDS = [
+  { key: 'period', label: '이수 기간', ph: '예: 11.3.~11.7.' },
+  { key: 'course', label: '연수명', ph: '각자 들은 연수 이름' },
+  { key: 'number', label: '이수 번호', ph: '이수증에 적힌 번호' },
+  { key: 'hours',  label: '이수시간', ph: '예: 2시간' },
+  { key: 'cert',   label: '이수증 제출', options: ['제출', '미제출'] }
+];
+const DEFAULT_FIELDS = ['period', 'number', 'hours', 'cert'];
+
+/* ───────── 도구 ───────── */
+const $app = document.getElementById('app');
+const $ = (sel, root = document) => root.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm = s => String(s ?? '').replace(/\s+/g, '').toLowerCase();
-
+const rid = () => 'r' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3);
+const okImg = u => typeof u === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(u);
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 function fmtDate(v){
   if(!v) return '';
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
@@ -86,104 +235,383 @@ function fmtDate(v){
   const d = new Date(+m[1], +m[2]-1, +m[3]);
   return `${+m[1]}. ${+m[2]}. ${+m[3]}.(${'일월화수목금토'[d.getDay()]})`;
 }
-
 function errText(e){
   const code = e && e.code || '';
   if(code.includes('admin-restricted-operation') || code.includes('operation-not-allowed') || code.includes('configuration-not-found'))
-    return '파이어베이스 Authentication에서 익명 로그인이 켜져 있지 않습니다. 담당자에게 알려 주세요.';
+    return '파이어베이스 콘솔의 Authentication에서 「익명」 로그인이 켜져 있는지 확인해 주세요.';
   if(code.includes('permission-denied'))
-    return '서명이 마감되었거나 저장 권한이 없습니다. 담당자에게 알려 주세요.';
+    return '파이어베이스 콘솔의 Firestore 「규칙」 탭에 새 보안 규칙을 붙여넣고 게시했는지 확인해 주세요.';
   if(code.includes('unavailable') || code.includes('network'))
     return '인터넷 연결을 확인한 뒤 다시 시도해 주세요.';
-  return '잠시 후 다시 시도해 주세요. (' + (code || (e && e.message) || '알 수 없는 오류') + ')';
+  return code || (e && e.message) || '알 수 없는 오류';
+}
+let toastTimer;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 1800);
+}
+function fail(e, what){ console.error(e); alert((what || '작업') + '에 실패했습니다.\n' + errText(e)); }
+const pageUrl = id => location.origin + location.pathname + '#t/' + id;
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); toast('링크를 복사했습니다'); }
+  catch(_){ prompt('아래 링크를 복사해 주세요', text); }
+}
+function qrDataUrl(text){
+  if(typeof window.qrcode !== 'function') return null;
+  try{ const q = window.qrcode(0, 'M'); q.addData(text); q.make(); return q.createDataURL(8, 16); }
+  catch(_){ return null; }
+}
+const isOnline = t => t.type === 'online';
+const fieldsOf = t => isOnline(t) ? FIELDS.filter(f => (t.fields || []).includes(f.key)) : [];
+const isPast = t => !!t.due && t.due < today();
+
+/* ───────── 상태 ───────── */
+const S = {
+  roster: null,          // { school, groups:[{id,name}], members:[{id,group,role,name}] }
+  list: [],
+  tid: null, t: null, recs: {}, unsubs: [],
+  saveTimer: null, saveFn: null, pad: null
+};
+function scheduleSave(fn){ S.saveFn = fn; clearTimeout(S.saveTimer); S.saveTimer = setTimeout(flushSave, 600); }
+async function flushSave(){
+  clearTimeout(S.saveTimer); S.saveTimer = null;
+  const fn = S.saveFn; S.saveFn = null;
+  if(!fn) return;
+  try{ await fn(); toast('저장했습니다'); } catch(e){ fail(e, '저장'); }
+}
+window.addEventListener('beforeunload', () => { if(S.saveFn) flushSave(); });
+
+async function loadRoster(){
+  const snap = await getDoc(doc(db, 'settings', 'roster'));
+  const d = snap.exists() ? snap.data() : {};
+  const groups = (d.groups && d.groups.length ? d.groups : DEFAULT_GROUPS).map(g => ({ id: g.id, name: g.name }));
+  const members = (d.members || []).map(m => ({ id: m.id || rid(), group: m.group, role: m.role || '', name: m.name || '' }));
+  S.roster = { school: d.school || DEFAULT_SCHOOL, groups, members };
+  sortMembers();
+  return S.roster;
+}
+function sortMembers(){
+  const r = S.roster, ids = r.groups.map(g => g.id);
+  r.members.forEach(m => { if(!ids.includes(m.group)) m.group = ids[0]; });
+  r.members = r.groups.flatMap(g => r.members.filter(m => m.group === g.id));
+}
+function saveRoster(){
+  const r = S.roster;
+  return setDoc(doc(db, 'settings', 'roster'), { school: r.school, groups: r.groups, members: r.members, updatedAt: serverTimestamp() });
 }
 
-function header(){
-  const meta = [fmtDate(reg.date), reg.time, reg.place].filter(Boolean).join('  |  ');
-  return `<p class="eyebrow">연수등록부</p><h1>${esc(reg.title)}</h1>${meta ? `<p class="meta">${esc(meta)}</p>` : ''}<hr>`;
-}
-
-function message(title, body){
-  $app.innerHTML = `<p class="eyebrow">연수등록부</p><h1>${esc(title)}</h1><p class="meta">${esc(body)}</p>`;
-}
-
-/* 1. 이름 입력 */
-function showName(errMsg){
-  $app.innerHTML = header() + `
-    <form id="f">
-      <label for="nm">이름을 입력해 주세요</label>
-      <input type="text" id="nm" autocomplete="off" enterkeyhint="go" placeholder="예: 홍길동">
-      ${errMsg ? `<p class="err">${esc(errMsg)}</p>` : ''}
-      <button class="primary full" type="submit">서명하러 가기</button>
-    </form>`;
-  const $nm = document.getElementById('nm');
-  $nm.focus();
-  document.getElementById('f').addEventListener('submit', e => {
-    e.preventDefault();
-    const q = norm($nm.value);
-    if(!q) return showName('이름을 입력해 주세요.');
-    const rows = reg.rows || [];
-    const exact = rows.filter(r => norm(r.name) === q);
-    if(exact.length === 1) return showPad(exact[0]);
-    if(exact.length > 1) return showChoices(exact, '같은 이름이 여러 명 있습니다. 본인을 골라 주세요.');
-    const near = q.length >= 2 ? rows.filter(r => norm(r.name).includes(q)) : [];
-    if(near.length) return showChoices(near, '입력한 이름과 비슷한 분입니다. 본인을 골라 주세요.');
-    showName('명단에 없는 이름입니다. 이름을 다시 확인하거나 담당자에게 알려 주세요.');
-  });
-}
-
-/* 2. 동명이인 선택 */
-function showChoices(list, guide){
-  $app.innerHTML = header() + `
-    <label>${esc(guide)}</label>
-    <ul class="choices">
-      ${list.map(r => `<li><button type="button" data-id="${esc(r.id)}"><span>${esc(r.name)}</span><span class="role">${esc(r.role || '')}</span></button></li>`).join('')}
-    </ul>
-    <button class="full" type="button" id="back">이름 다시 입력</button>`;
-  $app.querySelectorAll('.choices button').forEach(b => b.addEventListener('click', () => {
-    showPad(list.find(r => r.id === b.dataset.id));
-  }));
-  document.getElementById('back').addEventListener('click', () => showName());
-}
-
-/* 3. 서명 */
-async function showPad(row){
-  let already = false;
+/* ───────── 화면 전환 ───────── */
+async function route(){
+  await flushSave();
+  S.unsubs.forEach(u => u()); S.unsubs = [];
+  S.tid = null; S.t = null; S.recs = {};
+  const h = decodeURIComponent(location.hash.slice(1));
   try{
-    const s = await getDoc(doc(db, 'registers', regId, 'signs', row.id));
-    already = s.exists();
-  }catch(e){ /* 확인 실패는 무시하고 서명 진행 */ }
+    if(h.startsWith('t/')) await viewTraining(h.slice(2));
+    else if(h === 'roster') await viewRoster();
+    else await viewHome(h === 'archive');
+  }catch(e){
+    console.error(e);
+    $app.innerHTML = `<div class="card"><h2>불러오지 못했습니다</h2><p class="muted">${esc(errText(e))}</p><a class="btn" href="#">첫 화면으로</a></div>`;
+  }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
 
-  $app.innerHTML = header() + `
-    <div class="who"><b>${esc(row.name)}</b><span>${esc(row.role || '')}</span></div>
-    ${already ? '<p class="note">이미 서명이 등록되어 있습니다. 다시 제출하면 새 서명으로 바뀝니다.</p>' : ''}
-    <div class="padwrap"><canvas id="pad"></canvas><span class="hint" id="hint">이 칸 안에 서명해 주세요</span></div>
-    <p class="err" id="err" hidden></p>
-    <div class="btns">
-      <button type="button" id="back">이름 변경</button>
-      <button type="button" id="clear">지우기</button>
-      <button type="button" class="primary" id="save">서명 제출</button>
-    </div>`;
+/* ───────── 첫 화면: 연수 목록 ───────── */
+async function viewHome(archived){
+  $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
+  const [snap] = await Promise.all([
+    getDocs(query(collection(db, 'trainings'), orderBy('createdAt', 'desc'))), loadRoster() ]);
+  const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => !!t.archived === archived);
+  const counts = await Promise.all(list.map(t =>
+    getCountFromServer(collection(db, 'trainings', t.id, 'records')).then(s => s.data().count).catch(() => null)));
+  list.forEach((t, i) => t.count = counts[i]);
+  list.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  S.list = list;
+  document.title = `${S.roster.school} 연수 등록부`;
 
-  const pad = setupPad(document.getElementById('pad'), document.getElementById('hint'));
-  const $err = document.getElementById('err');
-  const $save = document.getElementById('save');
-  document.getElementById('back').addEventListener('click', () => showName());
-  document.getElementById('clear').addEventListener('click', () => pad.clear());
-  $save.addEventListener('click', async () => {
-    if(!pad.hasInk()){ $err.textContent = '서명을 먼저 해 주세요.'; $err.hidden = false; return; }
-    $save.disabled = true; $save.textContent = '저장 중…'; $err.hidden = true;
-    try{
-      const dataUrl = pad.toDataURL();
-      await setDoc(doc(db, 'registers', regId, 'signs', row.id), {
-        dataUrl, name: row.name || '', role: row.role || '', uid, signedAt: serverTimestamp()
-      });
-      showDone(row, dataUrl);
-    }catch(e){
-      console.error(e);
-      $err.textContent = '저장하지 못했습니다. ' + errText(e); $err.hidden = false;
-      $save.disabled = false; $save.textContent = '서명 제출';
+  const item = t => {
+    const meta = [
+      t.target ? '대상 ' + t.target : '', t.manager ? '담당 ' + t.manager : '',
+      t.due ? (isOnline(t) ? fmtDate(t.due) + '까지' : fmtDate(t.due)) : ''
+    ].filter(Boolean).join('  |  ');
+    const inner = `<span class="it-title">${esc(t.title || '(제목 없음)')}</span>
+      <span class="it-meta">${esc(meta || '세부 정보 없음')}</span>
+      <span class="it-side"><span class="prog">${t.count ?? '?'}/${(t.rows || []).length}</span>
+        <span class="badge ${t.needSign ? 'sign' : ''}">${t.needSign ? '서명' : '기록만'}</span></span>`;
+    if(archived) return `<li><div class="item">${inner}
+      <span class="btns" style="grid-column:1/-1;margin-top:6px"><button data-act="restore" data-id="${esc(t.id)}">되살리기</button><button class="danger" data-act="purge" data-id="${esc(t.id)}">완전 삭제</button></span></div></li>`;
+    return `<li><a class="item${isPast(t) ? ' past' : ''}" href="#t/${esc(t.id)}">${inner}</a></li>`;
+  };
+  const col = (type, label, cls) => {
+    const arr = list.filter(t => t.type === type);
+    return `<section class="col"><h2><span class="badge ${cls}">${label}</span> 연수 <small>${arr.length}건</small></h2>
+      ${arr.length ? `<ul class="list">${arr.map(item).join('')}</ul>` : `<p class="empty card" style="margin:0">${archived ? '없습니다.' : `등록된 ${label} 연수가 없습니다.`}</p>`}</section>`;
+  };
+
+  if(archived){
+    $app.innerHTML = `<div class="top"><h1>보관함</h1><div class="btns"><a class="btn" href="#">← 연수 목록</a></div></div>
+      <p class="muted small" style="margin:-6px 0 14px">기록이 들어 있던 연수는 삭제해도 여기로 옮겨집니다. 되살리거나 완전히 지울 수 있습니다.</p>
+      <div class="cols">${col('online', '온라인', 'on')}${col('offline', '오프라인', 'off')}</div>`;
+    return;
+  }
+  $app.innerHTML = `
+    <div class="top"><h1>${esc(S.roster.school)} 연수 등록부</h1>
+      <div class="btns"><button class="primary big" data-act="new">＋ 연수 등록</button><a class="btn big" href="#roster" style="padding:11px 18px">명부 관리</a></div></div>
+    ${S.roster.members.length ? '' : '<p class="notice">교직원 명부가 아직 비어 있습니다. <a href="#roster">명부 관리</a>에서 교원, 교직원, 봉사자 명부를 먼저 넣어 두면 연수를 등록할 때 대상을 한 번에 불러올 수 있습니다.</p>'}
+    <div class="cols">${col('online', '온라인', 'on')}${col('offline', '오프라인', 'off')}</div>
+    <p class="muted small" style="margin:14px 0 0">완료요구일이 지난 연수는 초록색으로 표시됩니다. 숫자는 「기록한 사람 / 대상 인원」입니다.</p>
+    <p class="foot-links"><a href="#archive">보관함 보기</a></p>`;
+}
+
+/* ───────── 연수 등록 / 정보 수정 ───────── */
+async function openForm(existing){
+  const r = await loadRoster();
+  const t = existing || { type: 'online', needSign: false, fields: DEFAULT_FIELDS };
+  const cnt = gid => r.members.filter(m => m.group === gid).length;
+  const dlg = $('#dlg-form');
+  dlg.innerHTML = `<form class="t-${t.type}" id="tform">
+    <h2>${existing ? '연수 정보 수정' : '연수 등록'}</h2>
+    <div class="stack">
+      <div class="seg" role="radiogroup" aria-label="연수 형태">
+        <label><input type="radio" name="type" value="online" ${t.type === 'online' ? 'checked' : ''} ${existing ? 'disabled' : ''}>온라인 연수</label>
+        <label><input type="radio" name="type" value="offline" ${t.type === 'offline' ? 'checked' : ''} ${existing ? 'disabled' : ''}>오프라인 연수</label>
+      </div>
+      <label class="f">연수명 <input type="text" name="title" required value="${esc(t.title)}" placeholder="예: 2026 학교안전교육 연수"></label>
+      ${existing ? '' : `<fieldset><legend>연수 대상 (명부에서 한 번에 불러오기)</legend>
+        ${r.members.length ? `<div class="checks">${r.groups.map(g => `<label class="chk"><input type="checkbox" name="grp" value="${esc(g.id)}"> ${esc(g.name)} <small class="muted">${cnt(g.id)}명</small></label>`).join('')}</div>`
+          : '<p class="muted small" style="margin:0">명부가 비어 있습니다. 빈 명단으로 만들어지고, 나중에 사람을 추가할 수 있습니다.</p>'}
+      </fieldset>`}
+      <div class="two">
+        <label class="f">연수대상 표기 <input type="text" name="target" value="${esc(t.target)}" placeholder="예: 전직원, 교원"></label>
+        <label class="f">담당자 <input type="text" name="manager" value="${esc(t.manager)}"></label>
+      </div>
+
+      <div class="only-on stack">
+        <div class="two">
+          <label class="f">완료요구일 <input type="date" name="due" value="${esc(isOnline(t) ? t.due : '')}"></label>
+          <label class="f">확인 방법 <select name="needSign"><option value="0" ${t.needSign ? '' : 'selected'}>기록만</option><option value="1" ${t.needSign ? 'selected' : ''}>기록 + 서명</option></select></label>
+        </div>
+        <div class="two">
+          <label class="f">교육방법 <input type="text" name="method" value="${esc(t.method)}" placeholder="예: 원격연수"></label>
+          <label class="f">교육기관 <input type="text" name="org" value="${esc(t.org)}" placeholder="예: 경기도교육청 온라인 연수원"></label>
+        </div>
+        <div class="two">
+          <label class="f">이수기간 <input type="text" name="period" value="${esc(t.period)}" placeholder="예: 2026.11.1.~11.30."></label>
+          <label class="f">이수증 제출 여부 <input type="text" name="certNote" value="${esc(t.certNote)}" placeholder="예: 제출 필요 / 개인 보관"></label>
+        </div>
+        <fieldset><legend>각자 입력할 항목</legend>
+          <div class="checks">${FIELDS.map(f => `<label class="chk"><input type="checkbox" name="fld" value="${f.key}" ${(t.fields || []).includes(f.key) ? 'checked' : ''}> ${f.label}</label>`).join('')}</div>
+        </fieldset>
+      </div>
+
+      <div class="only-off stack">
+        <div class="two">
+          <label class="f">연수 날짜 <input type="date" name="date" value="${esc(!isOnline(t) ? t.due : '')}"></label>
+          <label class="f">시간 <input type="text" name="time" value="${esc(t.time)}" placeholder="예: 15:00~16:30"></label>
+        </div>
+        <label class="f">장소 <input type="text" name="place" value="${esc(t.place)}" placeholder="예: 시청각실"></label>
+        <p class="muted small" style="margin:0">오프라인 연수는 명단에서 본인 줄을 눌러 전자서명을 받습니다.</p>
+      </div>
+    </div>
+    <div class="dbtns"><button type="button" data-close>취소</button><button type="submit" class="primary">${existing ? '저장' : '등록'}</button></div>
+  </form>`;
+  const form = $('#tform');
+  const tgt = form.elements.target;
+  let auto = !existing;
+  tgt.addEventListener('input', () => { auto = false; });
+  form.addEventListener('change', e => {
+    if(e.target.name === 'type') form.className = 't-' + e.target.value;
+    if(e.target.name === 'grp' && auto){
+      const on = [...form.querySelectorAll('[name=grp]:checked')].map(c => c.value);
+      tgt.value = on.length === r.groups.length && on.length > 1 ? '전직원' : r.groups.filter(g => on.includes(g.id)).map(g => g.name).join(', ');
     }
+  });
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = form.querySelector('[type=submit]'); btn.disabled = true;
+    try{
+      const v = n => (form.elements[n]?.value || '').trim();
+      const type = existing ? existing.type : form.querySelector('[name=type]:checked').value;
+      const data = { title: v('title'), target: v('target'), manager: v('manager') };
+      if(type === 'online') Object.assign(data, {
+        due: v('due'), needSign: v('needSign') === '1', method: v('method'), org: v('org'), period: v('period'), certNote: v('certNote'),
+        fields: [...form.querySelectorAll('[name=fld]:checked')].map(c => c.value) });
+      else Object.assign(data, { due: v('date'), time: v('time'), place: v('place'), needSign: true, fields: [] });
+      if(existing){
+        await updateDoc(doc(db, 'trainings', S.tid), data);
+        dlg.close(); toast('저장했습니다');
+      }else{
+        const on = [...form.querySelectorAll('[name=grp]:checked')].map(c => c.value);
+        if(r.members.length && !on.length && !confirm('연수 대상을 고르지 않았습니다.\n빈 명단으로 등록할까요?')){ btn.disabled = false; return; }
+        const rows = r.groups.filter(g => on.includes(g.id)).flatMap(g =>
+          r.members.filter(m => m.group === g.id).map(m => ({ id: rid(), group: g.name, role: m.role, name: m.name })));
+        const ref = await addDoc(collection(db, 'trainings'), { ...data, type, rows, archived: false, createdAt: serverTimestamp() });
+        dlg.close();
+        location.hash = 't/' + ref.id;
+      }
+    }catch(err){ fail(err, existing ? '저장' : '연수 등록'); btn.disabled = false; }
+  });
+  dlg.showModal();
+}
+
+/* ───────── 연수 상세: 명단에 기록, 서명 ───────── */
+async function viewTraining(id){
+  $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
+  const snap = await getDoc(doc(db, 'trainings', id));
+  if(!snap.exists()){
+    $app.innerHTML = '<div class="card"><h2>연수를 찾을 수 없습니다</h2><p class="muted">삭제되었거나 링크가 잘못되었습니다.</p><a class="btn" href="#">연수 목록으로</a></div>';
+    return;
+  }
+  if(!S.roster) await loadRoster();
+  S.tid = id; S.t = { rows: [], ...snap.data() };
+  const qr = qrDataUrl(pageUrl(id));
+  $app.innerHTML = `
+    <div class="top no-print"><a class="btn" href="#">← 연수 목록</a>
+      <div class="btns">
+        <button data-act="copylink">링크 복사</button>
+        ${qr ? '<button data-act="bigqr">QR 코드</button>' : ''}
+        <button data-act="edit">정보 수정</button>
+        <button class="primary" data-act="print">PDF로 저장 / 인쇄</button>
+        <button class="danger" data-act="del">삭제</button>
+      </div></div>
+    <section class="card no-print" id="info"></section>
+    <section class="card no-print">
+      <div class="bar">
+        <input type="search" id="q" placeholder="이름이나 직위로 찾기" aria-label="이름이나 직위로 찾기">
+        <label class="chk"><input type="checkbox" id="only-todo"> 아직 안 한 사람만 보기</label>
+        <span class="count" id="count"></span>
+      </div>
+      <p class="guide" id="guide"></p>
+      <div class="tablewrap"><table class="reg"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+      <div class="editbtns"><button data-act="addperson">＋ 명단에 없는 사람 추가</button></div>
+    </section>
+    <div id="sheets" class="print-only"></div>`;
+  $('#q').addEventListener('input', paintRows);
+  $('#only-todo').addEventListener('change', paintRows);
+  paintInfo(); paintRows();
+
+  S.unsubs.push(onSnapshot(doc(db, 'trainings', id), s => {
+    if(!s.exists()) return;
+    S.t = { rows: [], ...s.data() }; paintInfo(); paintRows();
+  }, e => console.error(e)));
+  S.unsubs.push(onSnapshot(collection(db, 'trainings', id, 'records'), s => {
+    const m = {}; s.forEach(x => { m[x.id] = x.data(); });
+    S.recs = m; paintRows();
+  }, e => console.error(e)));
+}
+
+function paintInfo(){
+  const t = S.t, el = $('#info'); if(!t || !el) return;
+  document.title = t.title || '연수 등록부';
+  const rows = [['연수대상', t.target], ['담당자', t.manager]];
+  if(isOnline(t)) rows.push(['완료요구일', fmtDate(t.due)], ['교육방법', t.method], ['교육기관', t.org], ['이수기간', t.period], ['이수증 제출', t.certNote]);
+  else rows.push(['일시', [fmtDate(t.due), t.time].filter(Boolean).join(' ')], ['장소', t.place]);
+  el.innerHTML = `<div class="tags">
+      <span class="badge ${isOnline(t) ? 'on' : 'off'}">${isOnline(t) ? '온라인' : '오프라인'}</span>
+      <span class="badge ${t.needSign ? 'sign' : ''}">${t.needSign ? '서명' : '기록만'}</span>
+      ${isPast(t) ? '<span class="badge ok">기한 지남</span>' : ''}${t.archived ? '<span class="badge">보관함</span>' : ''}
+    </div>
+    <h1>${esc(t.title)}</h1>
+    <dl class="meta">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>`;
+  $('#guide').textContent = isOnline(t)
+    ? '본인 줄을 눌러 이수 내용을 입력해 주세요. 명단에 없으면 아래 「명단에 없는 사람 추가」를 누릅니다.'
+    : '본인 줄을 눌러 서명해 주세요. 명단에 없으면 아래 「명단에 없는 사람 추가」를 누릅니다.';
+}
+
+const nameOf = r => (S.recs[r.id] && S.recs[r.id].name) || r.name || '';
+function paintRows(){
+  const t = S.t; if(!t || !$('#tbody')) return;
+  const fields = fieldsOf(t);
+  const q = norm($('#q').value), todo = $('#only-todo').checked;
+  const span = 4 + fields.length + (t.needSign ? 1 : 0);
+  $('#thead').innerHTML = `<tr><th class="c-no">연번</th><th>직위/담당</th><th>성명</th>${fields.map(f => `<th>${f.label}</th>`).join('')}${t.needSign ? '<th>서명</th>' : ''}<th class="c-st"></th></tr>`;
+  let done = 0, html = '', lastGroup = null;
+  t.rows.forEach((r, i) => {
+    const rec = S.recs[r.id]; if(rec) done++;
+    const name = nameOf(r);
+    if(todo && rec) return;
+    if(q && !norm(name + r.role).includes(q)) return;
+    if(r.group && r.group !== lastGroup){ lastGroup = r.group; html += `<tr class="grp-row"><td colspan="${span}">${esc(r.group)}</td></tr>`; }
+    html += `<tr data-row="${esc(r.id)}" tabindex="0" class="${rec ? 'done' : ''}">
+      <td class="c-no">${i + 1}</td><td>${esc(r.role)}</td><td class="nm">${esc(name)}</td>
+      ${fields.map(f => `<td>${esc(rec?.values?.[f.key] ?? '')}</td>`).join('')}
+      ${t.needSign ? `<td class="sg">${rec && okImg(rec.sign) ? `<img src="${rec.sign}" alt="서명 완료">` : ''}</td>` : ''}
+      <td class="c-st">${rec ? '<span class="badge ok">완료</span>' : `<span class="badge sign">${isOnline(t) ? '입력하기' : '서명하기'}</span>`}</td></tr>`;
+  });
+  $('#tbody').innerHTML = html || `<tr class="grp-row"><td colspan="${span}" style="text-align:center;padding:18px!important;font-weight:400">${t.rows.length ? '조건에 맞는 사람이 없습니다.' : '명단이 비어 있습니다. 아래 버튼으로 사람을 추가해 주세요.'}</td></tr>`;
+  $('#count').textContent = `완료 ${done}/${t.rows.length}`;
+  renderSheets();
+}
+
+/* 한 사람의 기록, 서명 창 */
+function openEntry(row){
+  const t = S.t, isNew = !row;
+  const rec = row ? S.recs[row.id] : null;
+  const fields = fieldsOf(t);
+  const groups = [...new Set([...S.roster.groups.map(g => g.name), ...t.rows.map(r => r.group).filter(Boolean)])];
+  const dlg = $('#dlg-entry');
+  dlg.innerHTML = `<form id="eform">
+    <h2>${isNew ? '명단에 없는 사람 추가' : (isOnline(t) ? '이수 내용 입력' : '전자서명')}</h2>
+    ${isNew ? '' : `<p class="who">${esc(row.role)}<span>${esc(t.title)}</span></p>`}
+    <div class="stack">
+      ${isNew ? `<div class="two">
+        <label class="f">구분 <select name="group">${groups.map(g => `<option>${esc(g)}</option>`).join('')}</select></label>
+        <label class="f">직위/담당 <input type="text" name="role" placeholder="예: 3-2, 조리원"></label></div>` : ''}
+      <label class="f">성명 <input type="text" name="name" required autocomplete="off" value="${esc(row ? nameOf(row) : '')}"></label>
+      ${fields.map(f => f.options
+        ? `<label class="f">${f.label} <select name="v_${f.key}">${f.options.map(o => `<option ${(rec?.values?.[f.key] ?? f.options[0]) === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`
+        : `<label class="f">${f.label} <input type="text" name="v_${f.key}" autocomplete="off" value="${esc(rec?.values?.[f.key] ?? '')}" placeholder="${esc(f.ph || '')}"></label>`).join('')}
+      ${t.needSign ? `<div>
+        <label class="f" style="margin-bottom:6px">서명</label>
+        ${rec && okImg(rec.sign) ? `<div class="cursign"><img src="${rec.sign}" alt="현재 서명">등록된 서명입니다. 아래에 새로 서명하면 바뀝니다.</div>` : ''}
+        <div class="padwrap"><canvas id="pad"></canvas><span class="hint" id="hint">이 칸 안에 서명해 주세요</span></div>
+        <button type="button" id="pad-clear" style="margin-top:8px;padding:5px 10px;font-size:.85rem">서명 지우기</button>
+      </div>` : ''}
+    </div>
+    <p class="err" id="eerr" hidden></p>
+    <div class="dbtns">
+      ${rec ? '<button type="button" class="danger" id="e-clear" style="margin-right:auto">기록 지우기</button>'
+            : (!isNew ? '<button type="button" class="danger" id="e-remove" style="margin-right:auto">명단에서 빼기</button>' : '')}
+      <button type="button" data-close>취소</button>
+      <button type="submit" class="primary">${t.needSign ? '서명 저장' : '저장'}</button>
+    </div>
+  </form>`;
+  dlg.showModal();
+  const form = $('#eform'), $err = $('#eerr');
+  const pad = t.needSign ? setupPad($('#pad'), $('#hint')) : null;
+  if(pad) $('#pad-clear').addEventListener('click', () => pad.clear());
+  const showErr = m => { $err.textContent = m; $err.hidden = false; };
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = form.elements.name.value.trim();
+    if(!name) return showErr('성명을 입력해 주세요.');
+    let sign = rec && okImg(rec.sign) ? rec.sign : '';
+    if(pad && pad.hasInk()) sign = pad.toDataURL();
+    if(t.needSign && !sign) return showErr('서명을 해 주세요.');
+    const values = {};
+    fields.forEach(f => { values[f.key] = form.elements['v_' + f.key].value.trim(); });
+    const btn = form.querySelector('[type=submit]'); btn.disabled = true; $err.hidden = true;
+    try{
+      let target = row;
+      if(isNew){
+        target = { id: rid(), group: form.elements.group.value, role: form.elements.role.value.trim(), name };
+        await updateDoc(doc(db, 'trainings', S.tid), { rows: arrayUnion(target) });
+      }
+      await setDoc(doc(db, 'trainings', S.tid, 'records', target.id), { name, values, sign, uid, updatedAt: serverTimestamp() });
+      dlg.close(); toast(t.needSign ? '서명을 저장했습니다' : '저장했습니다');
+    }catch(err){ console.error(err); showErr('저장하지 못했습니다. ' + errText(err)); btn.disabled = false; }
+  });
+  const $clear = $('#e-clear'), $remove = $('#e-remove');
+  if($clear) $clear.addEventListener('click', async () => {
+    if(!confirm(`${nameOf(row) || row.role}의 기록${t.needSign ? '과 서명' : ''}을 지울까요?`)) return;
+    try{ await deleteDoc(doc(db, 'trainings', S.tid, 'records', row.id)); dlg.close(); toast('지웠습니다'); }catch(err){ fail(err, '지우기'); }
+  });
+  if($remove) $remove.addEventListener('click', async () => {
+    if(!confirm(`${row.role} ${row.name || ''} 줄을 이 연수 명단에서 뺄까요?\n(교직원 명부에는 그대로 남습니다)`)) return;
+    try{ await updateDoc(doc(db, 'trainings', S.tid), { rows: arrayRemove(row) }); dlg.close(); toast('명단에서 뺐습니다'); }catch(err){ fail(err, '명단 수정'); }
   });
 }
 
@@ -193,8 +621,7 @@ function setupPad(canvas, hint){
   canvas.width = Math.round(rect.width * dpr);
   canvas.height = Math.round(rect.height * dpr);
   const ctx = canvas.getContext('2d');
-  const style = () => { ctx.lineWidth = 2.8 * dpr; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111'; ctx.fillStyle = '#111'; };
-  style();
+  ctx.lineWidth = 2.8 * dpr; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111'; ctx.fillStyle = '#111';
   let drawing = false, last = null, ink = false;
   const pos = e => {
     const r = canvas.getBoundingClientRect();
@@ -216,21 +643,15 @@ function setupPad(canvas, hint){
   const stop = () => { drawing = false; };
   canvas.addEventListener('pointerup', stop);
   canvas.addEventListener('pointercancel', stop);
-
   return {
     hasInk: () => ink,
     clear(){ ctx.clearRect(0, 0, canvas.width, canvas.height); ink = false; hint.hidden = false; },
-    /* 여백을 잘라 내고 작은 PNG로 만든다 (투명 배경) */
-    toDataURL(){
+    toDataURL(){   /* 여백을 잘라 작은 투명 PNG로 만든다 */
       const w = canvas.width, h = canvas.height;
       const d = ctx.getImageData(0, 0, w, h).data;
       let x0 = w, y0 = h, x1 = -1, y1 = -1;
-      for(let y = 0; y < h; y++){
-        for(let x = 0; x < w; x++){
-          if(d[(y * w + x) * 4 + 3] > 12){
-            if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y;
-          }
-        }
+      for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
+        if(d[(y * w + x) * 4 + 3] > 12){ if(x < x0) x0 = x; if(x > x1) x1 = x; if(y < y0) y0 = y; if(y > y1) y1 = y; }
       }
       if(x1 < 0) return canvas.toDataURL('image/png');
       const m = Math.round(6 * dpr);
@@ -239,44 +660,239 @@ function setupPad(canvas, hint){
       const s = Math.min(480 / bw, 200 / bh, 2.5);
       const out = document.createElement('canvas');
       out.width = Math.max(1, Math.round(bw * s)); out.height = Math.max(1, Math.round(bh * s));
-      const o = out.getContext('2d');
-      o.imageSmoothingQuality = 'high';
+      const o = out.getContext('2d'); o.imageSmoothingQuality = 'high';
       o.drawImage(canvas, x0, y0, bw, bh, 0, 0, out.width, out.height);
       return out.toDataURL('image/png');
     }
   };
 }
 
-/* 4. 완료 */
-function showDone(row, dataUrl){
-  $app.innerHTML = header() + `
-    <div class="done">
-      <div class="check" aria-hidden="true">✓</div>
-      <h1>서명이 등록되었습니다</h1>
-      <p class="meta">${esc(row.name)} ${esc(row.role || '')}</p>
-      <img src="${esc(dataUrl)}" alt="등록된 서명">
-    </div>
-    <button class="full" type="button" id="next">다른 사람 서명하기</button>`;
-  document.getElementById('next').addEventListener('click', () => showName());
+/* ───────── 인쇄용 등록부 ───────── */
+function renderSheets(){
+  const mount = $('#sheets'), t = S.t; if(!mount || !t) return;
+  const school = S.roster ? S.roster.school : DEFAULT_SCHOOL;
+  const rows = t.rows;
+  const signImg = (r, h) => { const rec = S.recs[r.id]; return rec && okImg(rec.sign) ? `<img src="${rec.sign}" alt="서명" style="max-height:${h}mm">` : ''; };
+
+  if(isOnline(t)){
+    const fields = fieldsOf(t);
+    const info = [['교육방법', t.method], ['교육기관', t.org], ['이수기간', t.period], ['이수증 제출 여부', t.certNote]];
+    mount.innerHTML = `<section class="sheet online">
+      <h2>${esc(t.title)}</h2>
+      <p class="sub"><span>연수 이수명단</span><span>${esc(school)}</span></p>
+      <div class="infobox">${info.map((x, i) => `${i + 1}) ${x[0]}: ${esc(x[1] || '')}`).join('<br>')}</div>
+      <table><thead><tr><th class="no" style="width:7%">연번</th><th style="width:17%">직위/담당</th><th style="width:13%">성명</th>${fields.map(f => `<th>${f.label}</th>`).join('')}${t.needSign ? '<th style="width:17%">서명</th>' : ''}</tr></thead>
+      <tbody>${rows.map((r, i) => { const rec = S.recs[r.id];
+        return `<tr><td class="no">${i + 1}</td><td>${esc(r.role)}</td><td>${esc(nameOf(r))}</td>${fields.map(f => `<td>${esc(rec?.values?.[f.key] ?? '')}</td>`).join('')}${t.needSign ? `<td class="sg">${signImg(r, 6.6)}</td>` : ''}</tr>`; }).join('')}</tbody></table>
+    </section>`;
+    return;
+  }
+  /* 오프라인: 기존 시트처럼 좌우 2단 */
+  const P = Math.min(35, Math.max(15, Math.ceil(rows.length / 2)));
+  const rowH = Math.min(12, 228 / P);
+  const pages = Math.max(1, Math.ceil(rows.length / (P * 2)));
+  const half = '<col style="width:5%"><col style="width:13%"><col style="width:12%"><col style="width:20%">';
+  const hd = cls => `<th class="no${cls}">연번</th><th>직위/담당</th><th>성명</th><th>서명</th>`;
+  const cell = (idx, cls) => {
+    const r = rows[idx];
+    if(!r) return `<td class="no${cls}"></td><td></td><td></td><td class="sg"></td>`;
+    return `<td class="no${cls}">${idx + 1}</td><td>${esc(r.role)}</td><td>${esc(nameOf(r))}</td><td class="sg">${signImg(r, rowH - 1)}</td>`;
+  };
+  const when = [fmtDate(t.due), t.time].filter(Boolean).join(' ');
+  let out = '';
+  for(let p = 0; p < pages; p++){
+    const base = p * P * 2; let body = '';
+    for(let i = 0; i < P; i++) body += `<tr style="height:${rowH}mm">${cell(base + i, '')}${cell(base + P + i, ' split')}</tr>`;
+    out += `<section class="sheet offline">
+      <h2>${esc(t.title)}</h2>
+      <p class="sub"><span>${[when ? '일시: ' + esc(when) : '', t.place ? '장소: ' + esc(t.place) : ''].filter(Boolean).join('　')}</span><span>${esc(school)}</span></p>
+      <table class="fixed"><colgroup>${half}${half}</colgroup><thead><tr>${hd('')}${hd(' split')}</tr></thead><tbody>${body}</tbody></table>
+      ${pages > 1 ? `<p class="pg">${p + 1} / ${pages}</p>` : ''}
+    </section>`;
+  }
+  mount.innerHTML = out;
 }
 
-async function start(){
-  if(!regId) return message('서명 링크가 올바르지 않습니다', '담당자에게 받은 링크나 QR 코드로 다시 접속해 주세요.');
-  try{
-    const cred = await signInAnonymously(auth);
-    uid = cred.user.uid;
-    const snap = await getDoc(doc(db, 'registers', regId));
-    if(!snap.exists()) return message('등록부를 찾을 수 없습니다', '삭제되었거나 링크가 잘못되었습니다. 담당자에게 알려 주세요.');
-    reg = snap.data();
-    document.title = (reg.title || '연수등록부') + ' 서명';
-    if(reg.archived || reg.closed) return message('서명이 마감된 등록부입니다', '「' + (reg.title || '') + '」 서명이 마감되었습니다. 담당자에게 알려 주세요.');
-    showName();
-  }catch(e){
-    console.error(e);
-    message('연결하지 못했습니다', errText(e));
-  }
+/* ───────── 명부 관리 ───────── */
+async function viewRoster(){
+  $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
+  await loadRoster();
+  document.title = '명부 관리';
+  $app.innerHTML = `
+    <div class="top"><h1>명부 관리</h1><div class="btns"><a class="btn" href="#">← 연수 목록</a></div></div>
+    <section class="card">
+      <label class="f" style="max-width:340px">학교명 (등록부 인쇄물에 들어갑니다) <input type="text" id="school" value="${esc(S.roster.school)}"></label>
+    </section>
+    <section class="card">
+      <h2>구분</h2>
+      <p class="muted small" style="margin:-6px 0 10px">연수를 등록할 때 이 구분 단위로 대상을 한 번에 불러옵니다. 이름을 바꾸거나 새 구분을 만들 수 있습니다.</p>
+      <div class="groups" id="groups"></div>
+    </section>
+    <section class="card">
+      <h2>명부</h2>
+      <p class="muted small" style="margin:-6px 0 10px">고치면 바로 저장됩니다. 이미 등록한 연수의 명단은 바뀌지 않습니다.</p>
+      <div id="seedbox"></div>
+      <div id="editor"></div>
+      <div class="editbtns">
+        <button data-act="addmember">＋ 사람 추가</button>
+        <button data-act="bulk">한꺼번에 붙여넣기</button>
+      </div>
+    </section>`;
+  $('#school').addEventListener('input', e => { S.roster.school = e.target.value.trim() || DEFAULT_SCHOOL; scheduleSave(saveRoster); });
+  paintRoster();
 }
-start();
+function paintRoster(){
+  const r = S.roster;
+  const cnt = gid => r.members.filter(m => m.group === gid).length;
+  $('#groups').innerHTML = r.groups.map(g => `<span class="grp"><input type="text" data-gname="${esc(g.id)}" value="${esc(g.name)}" aria-label="구분 이름"><small>${cnt(g.id)}명</small><button data-act="delgroup" data-id="${esc(g.id)}" title="구분 삭제" aria-label="구분 삭제">×</button></span>`).join('')
+    + '<button data-act="addgroup">＋ 구분 추가</button>';
+  $('#seedbox').innerHTML = r.members.length ? '' : `<p class="notice">명부가 비어 있습니다. 기존 구글 시트에 있던 직위/담당 65개를 그대로 불러온 뒤 이름만 채워 넣을 수 있습니다.<br><button data-act="seed" style="margin-top:8px">기존 시트의 직위 불러오기</button></p>`;
+  const opts = sel => r.groups.map(g => `<option value="${esc(g.id)}" ${g.id === sel ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
+  $('#editor').innerHTML = `<div class="tablewrap"><table class="edit"><thead><tr><th class="c-no">연번</th><th class="c-grp">구분</th><th>직위/담당</th><th>성명</th><th class="c-tools"></th></tr></thead><tbody>${
+    r.members.map((m, i) => `<tr data-m="${esc(m.id)}"><td class="c-no">${i + 1}</td>
+      <td><select data-mf="group" aria-label="구분">${opts(m.group)}</select></td>
+      <td><input type="text" data-mf="role" value="${esc(m.role)}" aria-label="직위/담당"></td>
+      <td><input type="text" data-mf="name" value="${esc(m.name)}" aria-label="성명"></td>
+      <td class="c-tools"><button data-act="mup" aria-label="위로">▲</button> <button data-act="mdown" aria-label="아래로">▼</button> <button class="danger" data-act="mdel">삭제</button></td></tr>`).join('')
+    || '<tr><td colspan="5" class="muted" style="text-align:center;padding:18px">아직 등록된 사람이 없습니다.</td></tr>'}</tbody></table></div>`;
+}
+function parseBulk(text, group){
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
+    let role = '', name = '';
+    if(/[\t]/.test(line)){ const p = line.split('\t').map(s => s.trim()); role = p[0] || ''; name = p[1] || ''; }
+    else{ const p = line.split(/\s+/); if(p.length === 1) role = p[0]; else { name = p.pop(); role = p.join(' '); } }
+    return { id: rid(), group, role, name };
+  }).filter(m => m.role || m.name);
+}
+
+/* ───────── 이벤트 ───────── */
+$app.addEventListener('input', e => {
+  const t = e.target;
+  if(!S.roster) return;
+  if(t.dataset.gname){
+    const g = S.roster.groups.find(g => g.id === t.dataset.gname);
+    if(g){ g.name = t.value; scheduleSave(saveRoster);
+      document.querySelectorAll(`select[data-mf=group] option[value="${CSS.escape(g.id)}"]`).forEach(o => o.textContent = t.value); }
+    return;
+  }
+  if(t.dataset.mf && t.tagName === 'INPUT'){
+    const m = S.roster.members.find(m => m.id === t.closest('tr').dataset.m);
+    if(m){ m[t.dataset.mf] = t.value; scheduleSave(saveRoster); }
+  }
+});
+$app.addEventListener('change', e => {
+  const t = e.target;
+  if(t.dataset.mf === 'group' && S.roster){
+    const m = S.roster.members.find(m => m.id === t.closest('tr').dataset.m);
+    if(m){ m.group = t.value; sortMembers(); paintRoster(); scheduleSave(saveRoster); }
+  }
+});
+$app.addEventListener('keydown', e => {
+  if(e.key !== 'Enter') return;
+  const tr = e.target.closest && e.target.closest('table.reg tr[data-row]');
+  if(tr && e.target === tr){ e.preventDefault(); tr.click(); }
+});
+$app.addEventListener('click', async e => {
+  const tr = e.target.closest('table.reg tr[data-row]');
+  if(tr && S.t){ const row = S.t.rows.find(r => r.id === tr.dataset.row); if(row) openEntry(row); return; }
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const act = b.dataset.act;
+  try{
+    /* 첫 화면, 보관함 */
+    if(act === 'new') return openForm(null);
+    if(act === 'restore'){ await updateDoc(doc(db, 'trainings', b.dataset.id), { archived: false }); toast('되살렸습니다'); return route(); }
+    if(act === 'purge'){
+      const t = S.list.find(x => x.id === b.dataset.id); if(!t) return;
+      if(!confirm(`「${t.title}」 연수와 기록 ${t.count ?? ''}건을 완전히 삭제합니다.\n되돌릴 수 없습니다. 계속할까요?`)) return;
+      const recs = await getDocs(collection(db, 'trainings', t.id, 'records'));
+      await Promise.all(recs.docs.map(d => deleteDoc(d.ref)));
+      await deleteDoc(doc(db, 'trainings', t.id));
+      toast('완전히 삭제했습니다'); return route();
+    }
+    /* 연수 상세 */
+    if(act === 'copylink') return copyText(pageUrl(S.tid));
+    if(act === 'bigqr'){
+      $('#qr-title').textContent = S.t.title || '연수 등록부';
+      $('#qr-big').innerHTML = `<img src="${qrDataUrl(pageUrl(S.tid))}" alt="이 연수 등록부로 가는 QR 코드">`;
+      return $('#dlg-qr').showModal();
+    }
+    if(act === 'edit') return openForm(S.t);
+    if(act === 'addperson') return openEntry(null);
+    if(act === 'print'){ renderSheets(); document.title = S.t.title || '연수 등록부'; return window.print(); }
+    if(act === 'del'){
+      const n = Object.keys(S.recs).length;
+      if(n === 0){
+        if(!confirm(`「${S.t.title}」 연수를 삭제할까요?\n기록이 없는 연수라 바로 지워집니다.`)) return;
+        const id = S.tid; S.unsubs.forEach(u => u()); S.unsubs = [];
+        await deleteDoc(doc(db, 'trainings', id)); toast('삭제했습니다');
+      }else{
+        if(!confirm(`「${S.t.title}」 연수에는 기록 ${n}건이 들어 있습니다.\n지우지 않고 보관함으로 옮길까요?`)) return;
+        await updateDoc(doc(db, 'trainings', S.tid), { archived: true }); toast('보관함으로 옮겼습니다');
+      }
+      location.hash = ''; return;
+    }
+    /* 명부 관리 */
+    const r = S.roster;
+    if(act === 'addgroup'){ r.groups.push({ id: 'g' + rid(), name: '새 구분' }); paintRoster(); scheduleSave(saveRoster);
+      const inputs = document.querySelectorAll('.grp input'); const last = inputs[inputs.length - 1]; if(last){ last.focus(); last.select(); } return; }
+    if(act === 'delgroup'){
+      const g = r.groups.find(g => g.id === b.dataset.id); if(!g) return;
+      if(r.groups.length === 1) return alert('구분은 하나 이상 있어야 합니다.');
+      const n = r.members.filter(m => m.group === g.id).length;
+      if(!confirm(n ? `「${g.name}」 구분과 그 안의 ${n}명을 명부에서 삭제할까요?` : `「${g.name}」 구분을 삭제할까요?`)) return;
+      r.groups = r.groups.filter(x => x !== g); r.members = r.members.filter(m => m.group !== g.id);
+      paintRoster(); scheduleSave(saveRoster); return;
+    }
+    if(act === 'seed'){
+      r.groups = DEFAULT_GROUPS.map(g => ({ ...g }));
+      r.members = DEFAULT_GROUPS.flatMap(g => SEED[g.id].map(role => ({ id: rid(), group: g.id, role, name: '' })));
+      paintRoster(); scheduleSave(saveRoster); return;
+    }
+    if(act === 'addmember'){
+      const last = r.members[r.members.length - 1];
+      r.members.push({ id: rid(), group: last ? last.group : r.groups[0].id, role: '', name: '' });
+      sortMembers(); paintRoster(); scheduleSave(saveRoster);
+      const rows = document.querySelectorAll('#editor tbody tr'); const tr2 = rows[rows.length - 1];
+      if(tr2){ tr2.scrollIntoView({ block: 'center' }); const inp = tr2.querySelector('input'); if(inp) inp.focus(); }
+      return;
+    }
+    if(act === 'bulk'){
+      $('#bulk-group').innerHTML = r.groups.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');
+      $('#bulk-text').value = ''; return $('#dlg-bulk').showModal();
+    }
+    const mtr = b.closest('tr[data-m]'); if(!mtr) return;
+    const i = r.members.findIndex(m => m.id === mtr.dataset.m); if(i < 0) return;
+    if(act === 'mup' || act === 'mdown'){
+      const j = act === 'mup' ? i - 1 : i + 1;
+      if(j < 0 || j >= r.members.length || r.members[j].group !== r.members[i].group) return;
+      [r.members[i], r.members[j]] = [r.members[j], r.members[i]];
+      paintRoster(); scheduleSave(saveRoster); return;
+    }
+    if(act === 'mdel'){
+      const m = r.members[i];
+      if(!confirm(`${[m.role, m.name].filter(Boolean).join(' ') || '이 줄'}을(를) 명부에서 삭제할까요?`)) return;
+      r.members.splice(i, 1); paintRoster(); scheduleSave(saveRoster); return;
+    }
+  }catch(err){ fail(err); }
+});
+
+document.addEventListener('click', e => { const c = e.target.closest('dialog [data-close]'); if(c) c.closest('dialog').close(); });
+$('#bulk-ok').addEventListener('click', () => {
+  const add = parseBulk($('#bulk-text').value, $('#bulk-group').value);
+  if(!add.length) return alert('붙여넣은 내용이 없습니다.');
+  S.roster.members.push(...add); sortMembers(); paintRoster(); scheduleSave(saveRoster);
+  $('#dlg-bulk').close(); toast(`${add.length}명을 추가했습니다`);
+});
+window.addEventListener('beforeprint', renderSheets);
+
+/* 시작 */
+(async () => {
+  try{ const cred = await signInAnonymously(auth); uid = cred.user.uid; await route(); }
+  catch(e){
+    console.error(e);
+    $app.innerHTML = `<div class="card"><h2>연결하지 못했습니다</h2><p class="muted">${esc(errText(e))}</p></div>`;
+  }
+})();
 </script>
 </body>
 </html>
