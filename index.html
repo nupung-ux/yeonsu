@@ -96,6 +96,8 @@
   .logo-prev{width:72px;height:72px;border:1px dashed var(--line);border-radius:10px;display:grid;place-items:center;background:#fff;color:var(--sub);font-size:.8rem;overflow:hidden}
   .logo-prev img{max-width:100%;max-height:100%;object-fit:contain}
   .sitelinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .sitelinks a{font-size:.82rem;font-weight:700;padding:4px 10px;border-radius:8px;background:#e8f1fd;border:1px solid #c5daf7;color:var(--accent-dark);text-decoration:none}
+  .sitelinks a:hover{background:#d9e8fb;text-decoration:underline}
   #dlg-form{width:min(1000px,96vw);padding:20px 22px}
   #dlg-form h2{margin-bottom:10px}
   .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;align-items:start}
@@ -105,7 +107,9 @@
   #dlg-form textarea.short{min-height:66px}
   #dlg-form .dbtns{margin-top:12px}
   .linkrows{display:grid;gap:6px}
-  .linkrow{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr) auto;gap:6px}
+  .linkrow{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr) auto;gap:6px}
+  .linkrow input{font-size:.86rem;padding:7px 8px}
+  .linkrow input::placeholder{font-size:.74rem;letter-spacing:-.02em}
   .linkrow button{padding:4px 10px;color:var(--sub)}
   .linkadd{padding:6px 11px;font-size:.88rem;justify-self:start}
   .noticebox a{color:var(--accent-dark);overflow-wrap:anywhere}
@@ -551,8 +555,8 @@ async function findMine(name){
 /* 연수원 링크 목록. 예전에 한 칸으로 저장한 링크도 함께 읽는다 */
 const linksOf = t => [...(Array.isArray(t.links) ? t.links : []), ...(t.link ? [{ name: '', url: t.link }] : [])].filter(x => x && /^https?:\/\//i.test(x.url || ''));
 const linkRow = x => `<div class="linkrow">
-  <input type="text" name="lname" value="${esc(x.name)}" placeholder="연수원 이름 (예: 경기도교육청남부연수원)" aria-label="연수원 이름">
-  <input type="text" name="lurl" inputmode="url" value="${esc(x.url)}" placeholder="링크 (예: https://www.gtie.go.kr/)" aria-label="연수원 링크">
+  <input type="text" name="lname" value="${esc(x.name)}" placeholder="예: 경기도교육청남부연수원" aria-label="연수원 이름">
+  <input type="text" name="lurl" inputmode="url" value="${esc(x.url)}" placeholder="예: https://www.gtie.go.kr/" aria-label="연수원 링크">
   <button type="button" data-rmlink title="이 링크 빼기" aria-label="이 링크 빼기">×</button></div>`;
 async function openForm(existing, tid){
   const r = await loadRoster();
@@ -749,7 +753,7 @@ function paintInfo(){
     </div>
     <h1>${esc(t.title)}</h1>
     <dl class="meta">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>
-    ${isOnline(t) && linksOf(t).length ? `<div class="sitelinks">${linksOf(t).map(x => `<a class="btn" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.name || '연수원 바로 가기')} ↗</a>`).join('')}</div>` : ''}
+    ${isOnline(t) && linksOf(t).length ? `<div class="sitelinks">${linksOf(t).map(x => `<a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.name || '연수원 바로 가기')}</a>`).join('')}</div>` : ''}
     ${t.notice ? `<p class="noticebox"><b>안내 사항</b>${linkify(t.notice)}</p>` : ''}`;
   const ai = $('#t-ai'); if(ai) ai.hidden = !fieldsOf(t).some(f => AI_KEYS.includes(f.key)) || !!t.archived;
   $('#guide').textContent = isOnline(t)
