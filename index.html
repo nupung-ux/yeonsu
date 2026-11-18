@@ -67,8 +67,11 @@
   .t-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start}
   .t-left{position:sticky;top:calc(var(--bar-h,60px) + 12px);max-height:calc(100vh - var(--bar-h,60px) - 24px);overflow:auto;display:grid;gap:12px}
   .t-left>.card{margin:0}
-  .split2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-  @media (max-width:900px){.split2{grid-template-columns:1fr}}
+  .splitn{display:grid;gap:12px;align-items:start}
+  .editing .bar,.editing #guide,.editing .editbtns{display:none}
+  table.edtable{min-width:0}
+  .edbar{margin-bottom:10px}
+  .edbar .chk{font-weight:700}
   .item.on{background:#f7f3fe;border-color:#dfd3f6} .item.off{background:#fff6ea;border-color:#f2dcc0}
   a.item.on:hover{border-color:#b9a0ea} a.item.off:hover{border-color:#e3b579}
   .list li{position:relative}
@@ -367,7 +370,7 @@ const S = {
   list: [],
   tid: null, t: null, recs: {}, unsubs: [],
   app: { year: '', logo: '' },
-  saveTimer: null, saveFn: null, pad: null, sel: new Set(), adminOk: false, pendingAI: null
+  saveTimer: null, saveFn: null, pad: null, sel: new Set(), adminOk: false, pendingAI: null, edit: null
 };
 function scheduleSave(fn){ S.saveFn = fn; clearTimeout(S.saveTimer); S.saveTimer = setTimeout(flushSave, 600); }
 async function flushSave(){
@@ -413,7 +416,7 @@ function saveRoster(){
 async function route(){
   await flushSave();
   S.unsubs.forEach(u => u()); S.unsubs = []; clearTimeout(syncTimer);
-  S.tid = null; S.t = null; S.recs = {}; S.sel.clear(); S.pendingAI = null;
+  S.tid = null; S.t = null; S.recs = {}; S.sel.clear(); S.pendingAI = null; S.edit = null;
   const h = decodeURIComponent(location.hash.slice(1));
   try{
     if(h.startsWith('t/')){ const [tid, rowId] = h.slice(2).split('/'); await viewTraining(tid, rowId); }
@@ -429,6 +432,7 @@ async function route(){
 }
 function setBarH(){ const t = document.querySelector('.top'); document.documentElement.style.setProperty('--bar-h', (t ? t.offsetHeight : 0) + 'px'); }
 window.addEventListener('resize', setBarH);
+let resizeTimer; window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if(S.t && !S.edit) paintRows(); }, 200); });
 window.addEventListener('hashchange', route);
 
 /* ───────── 첫 화면: 연수 목록 ───────── */
@@ -488,20 +492,20 @@ async function viewHome(archived){
         <h2>내 연수 기록 찾기</h2>
         <div class="card mine">
         <form id="mine-form"><input type="search" id="mine-q" placeholder="이름을 입력하세요" aria-label="이름" autocomplete="off"><button class="primary" type="submit">찾기</button></form>
-        <div id="mine-result"><p class="muted small" style="margin:10px 0 0">이름을 넣으면 내가 기록한 연수와 아직 기록하지 않은 연수를 찾아 줍니다.</p></div>
+        <div id="mine-result"><p class="muted small" style="margin:10px 0 0">이름을 넣으면 내가 기록한 연수와 아직 기록하지 않은 연수를 찾아 줍니다. 한 번 찾은 이름은 이 브라우저에 기억됩니다.</p></div>
         </div>
       </aside>
     </div>`;
   $('#mine-form').addEventListener('submit', e => { e.preventDefault(); findMine($('#mine-q').value); });
-  let saved = ''; try{ saved = sessionStorage.getItem('mineName') || ''; }catch(_){}
+  let saved = ''; try{ saved = localStorage.getItem('mineName') || ''; }catch(_){}
   if(saved){ $('#mine-q').value = saved; findMine(saved); }
 }
 
 /* 이름으로 내가 기록한 연수, 아직 기록하지 않은 연수 찾기 */
 async function findMine(name){
   const box = $('#mine-result'), q = norm(name);
-  try{ sessionStorage.setItem('mineName', name.trim()); }catch(_){}
-  if(!q){ box.innerHTML = ''; return; }
+  try{ if(q) localStorage.setItem('mineName', name.trim()); else localStorage.removeItem('mineName'); }catch(_){}
+  if(!q){ box.innerHTML = '<p class="muted small" style="margin:10px 0 0">이름을 넣으면 내가 기록한 연수와 아직 기록하지 않은 연수를 찾아 줍니다.</p>'; return; }
   box.innerHTML = '<p class="muted small" style="margin:12px 0 0">찾는 중입니다…</p>';
   /* 예전에 만든 연수는 기록 요약이 없을 수 있어 한 번 읽어 온다 */
   await Promise.all(S.list.filter(t => !t.done).map(async t => {
@@ -684,6 +688,7 @@ async function viewTraining(id, openRow){
         <input type="search" id="q" placeholder="이름이나 직위로 찾기" aria-label="이름이나 직위로 찾기">
         <label class="chk"><input type="checkbox" id="only-todo"> 아직 안 한 사람만 보기</label>
         <span class="count" id="count"></span>
+        <button data-act="edit-rows">명단 편집</button>
       </div>
       <p class="guide" id="guide"></p>
       <div id="tables"></div>
@@ -729,8 +734,40 @@ function paintInfo(){
 }
 
 const nameOf = r => (S.recs[r.id] && S.recs[r.id].name) || r.name || '';
-function paintRows(){
+/* 명단을 몇 단으로 나눌지: 대면 연수는 넓은 화면에서 3단까지 */
+function colCount(mount, max){ const w = mount.clientWidth; return Math.min(max, w >= 1000 ? 3 : w >= 620 ? 2 : 1); }
+function splitTables(list, n, table){
+  if(n <= 1 || list.length <= 10) return table(list);
+  const per = Math.ceil(list.length / n), parts = [];
+  for(let k = 0; k < n; k++){ const part = list.slice(k * per, (k + 1) * per); if(part.length) parts.push(table(part)); }
+  return `<div class="splitn" style="grid-template-columns:repeat(${parts.length},minmax(0,1fr))">${parts.join('')}</div>`;
+}
+/* 명단 편집 모드: 직위와 성명을 칸에서 바로 고치고, 여러 명을 골라 한 번에 뺀다. 「명단 저장」을 눌러야 반영된다 */
+function paintEdit(){
+  const t = S.t, mount = $('#tables'), e = S.edit;
+  const rows = t.rows.filter(r => !e.del.has(r.id));
+  rows.forEach(r => { if(!e.vals[r.id]) e.vals[r.id] = { role: r.role || '', name: nameOf(r) }; });
+  const head = '<thead><tr><th class="c-chk"></th><th class="c-no">연번</th><th>직위/담당</th><th>성명</th><th class="c-st"></th></tr></thead>';
+  const items = rows.map((r, i) => ({ html: `<tr data-ed="${esc(r.id)}" class="${e.sel.has(r.id) ? 'picked' : ''}">
+      <td class="c-chk"><input type="checkbox" data-edsel aria-label="선택" ${e.sel.has(r.id) ? 'checked' : ''}></td><td class="c-no">${i + 1}</td>
+      <td><input type="text" data-edf="role" value="${esc(e.vals[r.id].role)}" aria-label="직위/담당"></td>
+      <td><input type="text" data-edf="name" value="${esc(e.vals[r.id].name)}" aria-label="성명"></td>
+      <td class="c-st">${S.recs[r.id] ? '<span class="badge ok">기록 있음</span>' : ''}</td></tr>` }));
+  const table = list => `<div class="tablewrap"><table class="edit edtable">${head}<tbody>${list.map(x => x.html).join('')}</tbody></table></div>`;
+  mount.innerHTML = `<div class="selbar edbar">
+      <label class="chk"><input type="checkbox" id="ed-all" ${rows.length && e.sel.size === rows.length ? 'checked' : ''}> 전체 선택 <span class="muted" id="ed-count" style="font-weight:400"></span></label>
+      <span class="selbtns"><button class="danger" data-act="ed-del">선택한 사람 빼기</button><button data-act="ed-cancel">취소</button><button class="primary" data-act="ed-save">명단 저장</button></span>
+    </div>` + (items.length ? splitTables(items, colCount(mount, 2), table) : '<p class="empty" style="border:1px solid var(--line);border-radius:10px;margin:0">명단에 남은 사람이 없습니다.</p>');
+  paintEditCount();
+}
+function paintEditCount(){
+  const e = S.edit, el = $('#ed-count'); if(!e || !el) return;
+  el.textContent = [e.sel.size ? `${e.sel.size}명 선택` : '', e.del.size ? `뺄 사람 ${e.del.size}명 (저장하면 반영)` : ''].filter(Boolean).join(', ');
+}
+function paintRows(force){
   const t = S.t, mount = $('#tables'); if(!t || !mount) return;
+  mount.parentElement.classList.toggle('editing', !!S.edit);
+  if(S.edit){ if(force === true || !mount.querySelector('.edbar')) paintEdit(); return; }
   const fields = fieldsOf(t);
   const q = norm($('#q').value), todo = $('#only-todo').checked;
   const span = 4 + fields.length + (t.needSign ? 1 : 0);
@@ -760,10 +797,7 @@ function paintRows(){
     return `<div class="tablewrap"><table class="reg">${head}<tbody>${body}</tbody></table></div>`;
   };
   if(!items.length) mount.innerHTML = `<p class="empty" style="border:1px solid var(--line);border-radius:10px;margin:0">${t.rows.length ? '조건에 맞는 사람이 없습니다.' : '명단이 비어 있습니다. 아래 버튼으로 사람을 추가해 주세요.'}</p>`;
-  else if(!isOnline(t) && items.length > 10){      /* 대면 연수 서명 명단은 반으로 나눠 좌우에 놓는다 */
-    const half = Math.ceil(items.length / 2);
-    mount.innerHTML = `<div class="split2">${table(items.slice(0, half))}${table(items.slice(half))}</div>`;
-  }else mount.innerHTML = table(items);
+  else mount.innerHTML = splitTables(items, isOnline(t) ? 1 : colCount(mount, 3), table);   /* 대면 연수 서명 명단은 좌우로 나눈다 */
   $('#count').textContent = `기록 ${done}/${t.rows.length}` + (part ? ` (일부 미입력 ${part}명)` : '');
   renderSheets();
 }
@@ -1460,6 +1494,7 @@ $app.addEventListener('paste', e => {
 /* ───────── 이벤트 ───────── */
 $app.addEventListener('input', e => {
   const t = e.target;
+  if(S.edit && t.dataset.edf){ const v = S.edit.vals[t.closest('tr').dataset.ed]; if(v) v[t.dataset.edf] = t.value; return; }
   if(!S.roster) return;
   if(t.dataset.gname){
     const g = S.roster.groups.find(g => g.id === t.dataset.gname);
@@ -1474,6 +1509,17 @@ $app.addEventListener('input', e => {
 });
 $app.addEventListener('change', e => {
   const t = e.target;
+  if(S.edit && t.id === 'ed-all'){
+    S.edit.sel = new Set(t.checked ? S.t.rows.filter(r => !S.edit.del.has(r.id)).map(r => r.id) : []);
+    document.querySelectorAll('#tables tr[data-ed]').forEach(tr => { tr.querySelector('[data-edsel]').checked = t.checked; tr.classList.toggle('picked', t.checked); });
+    return paintEditCount();
+  }
+  if(S.edit && t.dataset.edsel !== undefined){
+    const tr = t.closest('tr'), id = tr.dataset.ed;
+    if(t.checked) S.edit.sel.add(id); else S.edit.sel.delete(id);
+    tr.classList.toggle('picked', t.checked);
+    return paintEditCount();
+  }
   if(t.id === 'chk-all' && S.roster){
     S.sel = new Set(t.checked ? S.roster.members.map(m => m.id) : []);
     document.querySelectorAll('#editor [data-sel]').forEach(c => { c.checked = t.checked; });
@@ -1496,7 +1542,7 @@ $app.addEventListener('keydown', e => {
 });
 $app.addEventListener('click', async e => {
   const tr = e.target.closest('table.reg tr[data-row]');
-  if(tr && S.t){ const row = S.t.rows.find(r => r.id === tr.dataset.row); if(row) openEntry(row); return; }
+  if(tr && S.t && !S.edit){ const row = S.t.rows.find(r => r.id === tr.dataset.row); if(row) openEntry(row); return; }
   const b = e.target.closest('[data-act]'); if(!b) return;
   const act = b.dataset.act;
   try{
@@ -1521,6 +1567,27 @@ $app.addEventListener('click', async e => {
     }
     if(act === 'edit') return openForm(S.t, S.tid);
     if(act === 'addperson') return openEntry(null);
+    if(act === 'edit-rows'){ S.edit = { vals: {}, del: new Set(), sel: new Set() }; return paintRows(true); }
+    if(act === 'ed-cancel'){ S.edit = null; return paintRows(); }
+    if(act === 'ed-del'){
+      if(!S.edit.sel.size) return toast('뺄 사람을 먼저 체크해 주세요');
+      S.edit.sel.forEach(id => S.edit.del.add(id)); S.edit.sel.clear();
+      return paintRows(true);
+    }
+    if(act === 'ed-save'){
+      const ed = S.edit, tid = S.tid;
+      const recDel = [...ed.del].filter(id => S.recs[id]);
+      if(ed.del.size && !confirm(`${ed.del.size}명을 이 연수 명단에서 뺍니다.` + (recDel.length ? `\n그중 ${recDel.length}명은 이미 기록(서명)이 있고, 그 기록도 함께 지워집니다.` : '') + '\n계속할까요? (교직원 명부는 바뀌지 않습니다)')) return;
+      b.disabled = true;
+      const rows = S.t.rows.filter(r => !ed.del.has(r.id)).map(r => { const v = ed.vals[r.id]; return v ? { ...r, role: v.role.trim(), name: v.name.trim() } : r; });
+      await updateDoc(doc(db, 'trainings', tid), { rows });
+      await Promise.all([
+        ...recDel.map(id => deleteDoc(doc(db, 'trainings', tid, 'records', id))),
+        ...rows.filter(r => S.recs[r.id] && r.name && (S.recs[r.id].name || '') !== r.name).map(r => updateDoc(doc(db, 'trainings', tid, 'records', r.id), { name: r.name }))
+      ]);
+      S.edit = null; S.t.rows = rows; paintRows(); toast('명단을 저장했습니다');
+      return;
+    }
     if(act === 'print'){ renderSheets(); document.title = S.t.title || '연수 등록부'; return window.print(); }
     if(act === 'del'){
       const n = Object.keys(S.recs).length;
