@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>연수등록부 관리</title>
+<style>
+  :root{
+    --ink:#1c2733; --sub:#5d6978; --line:#d7dde6; --bg:#f3f5f8; --card:#ffffff;
+    --accent:#1d5fbf; --accent-dark:#174c99; --ok:#17794d; --warn:#b3261e;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.55;
+    font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
+  main{max-width:960px;margin:0 auto;padding:20px 16px 24px}
+  h1{margin:0;font-size:1.4rem;line-height:1.3}
+  h2{margin:0 0 12px;font-size:1.05rem}
+  .top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .top .btns{display:flex;flex-wrap:wrap;gap:8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+  .muted{color:var(--sub)}
+  .small{font-size:.88rem}
+  a{color:var(--accent)}
+  button,.btn{font:inherit;font-size:.93rem;font-weight:700;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink);padding:8px 13px;cursor:pointer;text-decoration:none;display:inline-block}
+  button:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #c9dcf7;outline-offset:1px}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{background:var(--accent-dark)}
+  button.danger{color:var(--warn)}
+  button:disabled{opacity:.5;cursor:default}
+  input[type=text],input[type=date],textarea,select{font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px;background:#fff;color:inherit;width:100%}
+  label.f{display:block;font-weight:700;font-size:.9rem}
+  label.f input{margin-top:4px;font-weight:400}
+  .grid{display:grid;gap:12px;grid-template-columns:2fr 1fr 1fr 1fr}
+  @media (max-width:720px){.grid{grid-template-columns:1fr 1fr}.grid .wide{grid-column:1/-1}}
+  .notice{background:#fff7e0;border:1px solid #ecd58b;border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:.93rem}
+
+  /* 목록 */
+  .list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+  .item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .item-main{flex:1 1 240px;min-width:0;text-decoration:none;color:inherit}
+  .item-main strong{display:block;font-size:1.05rem;overflow-wrap:anywhere}
+  .item-main span{color:var(--sub);font-size:.9rem}
+  .badge{font-size:.82rem;font-weight:700;padding:3px 9px;border-radius:999px;background:#e6eefb;color:var(--accent-dark);white-space:nowrap}
+  .badge.closed{background:#eceff3;color:var(--sub)}
+  .item .btns{display:flex;gap:6px;flex-wrap:wrap}
+  .empty{text-align:center;color:var(--sub);padding:36px 12px}
+
+  /* 링크 */
+  .linkrow{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  .linkrow .l{flex:1 1 320px;min-width:0}
+  .linkrow .l .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .qr{border:1px solid var(--line);border-radius:10px;padding:6px;background:#fff;cursor:zoom-in;line-height:0}
+  .qr img{width:120px;height:120px;image-rendering:pixelated}
+  .count{font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* 명단 편집 표 */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+  table.edit{border-collapse:collapse;width:100%;min-width:560px}
+  table.edit th,table.edit td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:middle}
+  table.edit thead th{background:#f7f9fb;font-size:.86rem;white-space:nowrap}
+  table.edit tbody tr:last-child td{border-bottom:0}
+  table.edit input{padding:6px 8px}
+  .c-no{width:48px;text-align:center!important;color:var(--sub);font-variant-numeric:tabular-nums}
+  .c-sign{width:150px;white-space:nowrap}
+  .c-sign img{height:30px;max-width:80px;object-fit:contain;vertical-align:middle;margin-right:6px}
+  .c-tools{width:150px;white-space:nowrap;text-align:right!important}
+  .c-tools button,.c-sign button{padding:4px 8px;font-size:.82rem}
+  th .colhead{display:flex;gap:4px;align-items:center;min-width:110px}
+  .editbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+  /* 인쇄용 등록부 */
+  .previewbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .previewbar label{display:flex;gap:8px;align-items:center;font-size:.9rem;white-space:nowrap}
+  .previewbar select{width:auto}
+  .sheets{overflow-x:auto;background:#e6eaef;border-radius:10px;padding:14px}
+  .sheet{width:186mm;margin:0 auto 14px;background:#fff;padding:0;color:#000}
+  .sheets .sheet{padding:8mm;width:202mm;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+  .sheet:last-child{margin-bottom:0}
+  .sheet h2{text-align:center;font-size:19pt;margin:0 0 3mm;line-height:1.3;overflow-wrap:anywhere}
+  .sheet .sub{display:flex;flex-wrap:wrap;gap:1mm 8mm;justify-content:center;font-size:10.5pt;margin:0 0 4mm}
+  .sheet table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:10.5pt}
+  .sheet th,.sheet td{border:.3mm solid #000;text-align:center;padding:0 1mm;overflow:hidden;line-height:1.2;word-break:keep-all;overflow-wrap:anywhere}
+  .sheet th{height:9mm;background:#eef0f3;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet .split{border-left:.7mm solid #000}
+  .sheet .no{white-space:nowrap;padding:0;overflow-wrap:normal;font-variant-numeric:tabular-nums}
+  .sheet.r15 td{height:14mm} .sheet.r20 td{height:10.4mm} .sheet.r25 td{height:8.3mm}
+  .sheet td.sg{padding:.5mm}
+  .sheet td.sg img{display:block;margin:0 auto;max-width:100%;object-fit:contain}
+  .sheet.r15 td.sg img{max-height:12.6mm} .sheet.r20 td.sg img{max-height:9.2mm} .sheet.r25 td.sg img{max-height:7.2mm}
+  .sheet .pg{text-align:center;font-size:9pt;margin:2mm 0 0}
+
+  dialog{border:0;border-radius:16px;padding:22px;width:min(520px,92vw);color:inherit;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  dialog::backdrop{background:rgba(20,30,45,.45)}
+  dialog h2{font-size:1.15rem}
+  dialog .stack{display:grid;gap:12px}
+  dialog .btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+  dialog textarea{min-height:200px;resize:vertical}
+  #dlg-qr{text-align:center;width:min(560px,94vw)}
+  #dlg-qr img{width:min(420px,78vw);height:auto;image-rendering:pixelated}
+  #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1c2733;color:#fff;padding:9px 16px;border-radius:999px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+  #toast.on{opacity:1}
+  footer{text-align:center;color:#9aa5b3;font-size:.78rem;padding:0 0 24px}
+
+  @page{size:A4 portrait;margin:12mm}
+  @media print{
+    body{background:#fff}
+    main{max-width:none;padding:0}
+    .no-print,footer,#toast,dialog{display:none!important}
+    .card.printable{border:0;padding:0;margin:0}
+    .sheets{background:none;padding:0;overflow:visible;border-radius:0}
+    .sheets .sheet{width:auto;padding:0;margin:0;box-shadow:none;break-after:page;page-break-after:always}
+    .sheets .sheet:last-child{break-after:auto;page-break-after:auto}
+  }
+</style>
+</head>
+<body>
+<main id="app"><p class="empty">불러오는 중입니다…</p></main>
+<footer>made by 너펑이</footer>
+
+<!-- 새 등록부 -->
+<dialog id="dlg-new">
+  <form method="dialog" id="form-new">
+    <h2>새 연수등록부 만들기</h2>
+    <div class="stack">
+      <label class="f">연수명 (등록부 맨 위 제목으로 들어갑니다)
+        <input type="text" name="title" required placeholder="예: 2026 학교폭력 예방 교직원 연수"></label>
+      <label class="f">연수 날짜 <input type="date" name="date"></label>
+      <label class="f">시간 <input type="text" name="time" placeholder="예: 15:00~16:30"></label>
+      <label class="f">장소 <input type="text" name="place" placeholder="예: 시청각실"></label>
+    </div>
+    <p class="muted small" style="margin:12px 0 0">명단은 기본 명단이 자동으로 들어가고, 만든 뒤에 고칠 수 있습니다.</p>
+    <div class="btns">
+      <button type="button" data-close>취소</button>
+      <button type="submit" class="primary" value="ok">만들기</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 명단 한꺼번에 붙여넣기 -->
+<dialog id="dlg-bulk">
+  <h2>명단 한꺼번에 붙여넣기</h2>
+  <p class="muted small" style="margin:0 0 10px">한 줄에 한 명씩 「직위/담당 이름」 순서로 적습니다. 엑셀이나 한글 표에서 두 칸(직위, 이름)을 복사해 그대로 붙여넣어도 됩니다.</p>
+  <textarea id="bulk-text" placeholder="교장	김바른&#10;교감	이올바&#10;1-1 담임	박하늘"></textarea>
+  <div class="btns">
+    <button type="button" data-close>취소</button>
+    <button type="button" id="bulk-replace" class="danger">기존 명단을 지우고 바꾸기</button>
+    <button type="button" id="bulk-append" class="primary">기존 명단 뒤에 추가</button>
+  </div>
+</dialog>
+
+<!-- QR 크게 보기 -->
+<dialog id="dlg-qr">
+  <h2 id="qr-title"></h2>
+  <div id="qr-big"></div>
+  <p class="muted" style="margin:10px 0 0">휴대폰 카메라로 QR 코드를 비추면 서명 화면이 열립니다.</p>
+  <div class="btns" style="justify-content:center"><button type="button" data-close>닫기</button></div>
+</dialog>
+
+<div id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, getDocs, collection,
+         onSnapshot, query, orderBy, serverTimestamp, getCountFromServer }
+  from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAB1pvTKdz4I2e2jVDWfsD93tNroSDS6t8",
+  authDomain: "yeonsu-register.firebaseapp.com",
+  projectId: "yeonsu-register",
+  storageBucket: "yeonsu-register.firebasestorage.app",
+  messagingSenderId: "512584387404",
+  appId: "1:512584387404:web:6b021a133750417a661de9"
+};
+
+const fb = initializeApp(firebaseConfig);
+const auth = getAuth(fb);
+const db = getFirestore(fb);
+
+const $app = document.getElementById('app');
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rid = () => 'r' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3);
+const okImg = u => typeof u === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(u);
+
+function fmtDate(v){
+  if(!v) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if(!m) return v;
+  const d = new Date(+m[1], +m[2]-1, +m[3]);
+  return `${+m[1]}. ${+m[2]}. ${+m[3]}.(${'일월화수목금토'[d.getDay()]})`;
+}
+function errText(e){
+  const code = e && e.code || '';
+  if(code.includes('admin-restricted-operation') || code.includes('operation-not-allowed') || code.includes('configuration-not-found'))
+    return '파이어베이스 콘솔의 Authentication에서 「익명」 로그인이 켜져 있는지 확인해 주세요.';
+  if(code.includes('permission-denied'))
+    return '파이어베이스 콘솔의 Firestore 「규칙」 탭에 보안 규칙을 붙여넣고 게시했는지 확인해 주세요.';
+  if(code.includes('unavailable') || code.includes('network'))
+    return '인터넷 연결을 확인한 뒤 다시 시도해 주세요.';
+  return code || (e && e.message) || '알 수 없는 오류';
+}
+let toastTimer;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 1800);
+}
+function fail(e, what){
+  console.error(e);
+  alert((what || '작업') + '에 실패했습니다.\n' + errText(e));
+}
+const signUrl = id => new URL('index.html?id=' + encodeURIComponent(id), location.href).href;
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); toast('링크를 복사했습니다'); }
+  catch(_){ prompt('아래 링크를 복사해 주세요', text); }
+}
+function qrDataUrl(text){
+  if(typeof window.qrcode !== 'function') return null;
+  try{ const q = window.qrcode(0, 'M'); q.addData(text); q.make(); return q.createDataURL(8, 16); }
+  catch(_){ return null; }
+}
+
+/* ───────── 상태 ───────── */
+const S = {
+  list: [],          // 목록 화면의 등록부들
+  regId: null, reg: null, signs: {}, unsub: null,
+  roster: null,      // 기본 명단 화면
+  ed: null,          // 현재 편집 표 { rows, cols, withSign, mount, changed() }
+  perSide: 20,
+  saveTimer: null, saveFn: null
+};
+
+function scheduleSave(fn){
+  S.saveFn = fn;
+  clearTimeout(S.saveTimer);
+  S.saveTimer = setTimeout(flushSave, 600);
+}
+async function flushSave(){
+  clearTimeout(S.saveTimer); S.saveTimer = null;
+  const fn = S.saveFn; S.saveFn = null;
+  if(!fn) return;
+  try{ await fn(); toast('저장했습니다'); }
+  catch(e){ fail(e, '저장'); }
+}
+window.addEventListener('beforeunload', () => { if(S.saveFn) flushSave(); });
+
+/* ───────── 화면 전환 ───────── */
+async function route(){
+  await flushSave();
+  if(S.unsub){ S.unsub(); S.unsub = null; }
+  S.ed = null; S.reg = null; S.regId = null; S.signs = {}; S.roster = null;
+  document.title = '연수등록부 관리';
+  const h = decodeURIComponent(location.hash.slice(1));
+  try{
+    if(h.startsWith('reg/')) await viewReg(h.slice(4));
+    else if(h === 'roster') await viewRoster();
+    else await viewList(h === 'archive');
+  }catch(e){
+    console.error(e);
+    $app.innerHTML = `<div class="card"><h2>불러오지 못했습니다</h2><p class="muted">${esc(errText(e))}</p><a class="btn" href="#">목록으로</a></div>`;
+  }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+
+/* ───────── 목록 / 보관함 ───────── */
+async function viewList(archived){
+  $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
+  const [snap, rosterSnap] = await Promise.all([
+    getDocs(query(collection(db, 'registers'), orderBy('createdAt', 'desc'))),
+    getDoc(doc(db, 'settings', 'roster'))
+  ]);
+  const regs = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => !!r.archived === archived);
+  const counts = await Promise.all(regs.map(r =>
+    getCountFromServer(collection(db, 'registers', r.id, 'signs')).then(s => s.data().count).catch(() => null)));
+  regs.forEach((r, i) => r.count = counts[i]);
+  S.list = regs;
+  const rosterEmpty = !rosterSnap.exists() || !(rosterSnap.data().members || []).length;
+
+  const items = regs.map(r => {
+    const meta = [fmtDate(r.date), r.time, r.place].filter(Boolean).join('  |  ');
+    const total = (r.rows || []).length;
+    return `<li class="item">
+      <a class="item-main" href="#reg/${esc(r.id)}"><strong>${esc(r.title || '(제목 없음)')}</strong><span>${esc(meta || '날짜 미정')}</span></a>
+      <span class="badge${r.closed ? ' closed' : ''}">${r.closed ? '마감 ' : '서명 '}${r.count ?? '?'}/${total}</span>
+      <div class="btns">${archived
+        ? `<button data-act="restore" data-id="${esc(r.id)}">되살리기</button><button class="danger" data-act="purge" data-id="${esc(r.id)}">완전 삭제</button>`
+        : `<a class="btn" href="#reg/${esc(r.id)}">열기</a><button data-act="copy" data-id="${esc(r.id)}">링크 복사</button><button class="danger" data-act="del" data-id="${esc(r.id)}">삭제</button>`}
+      </div></li>`;
+  }).join('');
+
+  $app.innerHTML = archived ? `
+    <div class="top"><h1>보관함</h1><div class="btns"><a class="btn" href="#">← 목록으로</a></div></div>
+    <p class="muted small" style="margin:-6px 0 14px">서명이 들어 있던 등록부는 삭제해도 여기로 옮겨집니다. 되살리거나 완전히 지울 수 있습니다.</p>
+    ${regs.length ? `<ul class="list">${items}</ul>` : '<p class="empty">보관함이 비어 있습니다.</p>'}`
+  : `
+    <div class="top"><h1>연수등록부 관리</h1>
+      <div class="btns">
+        <button class="primary" data-act="new">새 등록부 만들기</button>
+        <a class="btn" href="#roster">기본 명단 관리</a>
+        <a class="btn" href="#archive">보관함</a>
+      </div></div>
+    ${rosterEmpty ? '<p class="notice">기본 명단이 아직 비어 있습니다. <a href="#roster">기본 명단 관리</a>에서 교직원 명단을 한 번 넣어 두면, 등록부를 만들 때마다 자동으로 들어갑니다.</p>' : ''}
+    ${regs.length ? `<ul class="list">${items}</ul>` : '<p class="empty">아직 만든 등록부가 없습니다.<br>「새 등록부 만들기」를 눌러 시작해 보세요.</p>'}`;
+}
+
+async function createReg(form){
+  const v = Object.fromEntries(new FormData(form));
+  const rs = await getDoc(doc(db, 'settings', 'roster'));
+  const members = rs.exists() ? (rs.data().members || []) : [];
+  const ref = await addDoc(collection(db, 'registers'), {
+    title: v.title.trim(), date: v.date || '', time: v.time.trim(), place: v.place.trim(),
+    columns: [],
+    rows: members.map(m => ({ id: rid(), role: m.role || '', name: m.name || '', extra: {} })),
+    closed: false, archived: false, createdAt: serverTimestamp()
+  });
+  form.reset();
+  location.hash = 'reg/' + ref.id;
+}
+
+async function purgeReg(id){
+  const signs = await getDocs(collection(db, 'registers', id, 'signs'));
+  await Promise.all(signs.docs.map(d => deleteDoc(d.ref)));
+  await deleteDoc(doc(db, 'registers', id));
+}
+
+/* ───────── 편집 표 (등록부 명단, 기본 명단 공용) ───────── */
+function editorHTML(){
+  const { rows, cols, withSign } = S.ed;
+  const head = `<tr><th class="c-no">연번</th><th>직위/담당</th><th>성명</th>${cols.map(c =>
+      `<th><span class="colhead"><input type="text" data-colname="${esc(c.key)}" value="${esc(c.label)}" aria-label="열 이름"><button data-act="delcol" data-col="${esc(c.key)}" title="이 열 삭제" aria-label="열 삭제">×</button></span></th>`).join('')}${withSign ? '<th class="c-sign">서명</th>' : ''}<th class="c-tools"></th></tr>`;
+  const body = rows.map((r, i) => `<tr data-row="${esc(r.id)}">
+      <td class="c-no">${i + 1}</td>
+      <td><input type="text" data-f="role" value="${esc(r.role)}" aria-label="직위/담당"></td>
+      <td><input type="text" data-f="name" value="${esc(r.name)}" aria-label="성명"></td>
+      ${cols.map(c => `<td><input type="text" data-f="x:${esc(c.key)}" value="${esc(r.extra?.[c.key] ?? '')}" aria-label="${esc(c.label)}"></td>`).join('')}
+      ${withSign ? `<td class="c-sign" data-signcell="${esc(r.id)}"></td>` : ''}
+      <td class="c-tools"><button data-act="up" title="위로" aria-label="위로">▲</button> <button data-act="down" title="아래로" aria-label="아래로">▼</button> <button class="danger" data-act="delrow">삭제</button></td>
+    </tr>`).join('');
+  return `<div class="tablewrap"><table class="edit"><thead>${head}</thead><tbody>${body || `<tr><td colspan="${4 + cols.length + (withSign ? 1 : 0)}" class="muted" style="text-align:center;padding:18px">명단이 비어 있습니다. 아래 버튼으로 추가해 주세요.</td></tr>`}</tbody></table></div>`;
+}
+function renderEditor(){
+  S.ed.mount.innerHTML = editorHTML();
+  if(S.ed.withSign) paintSigns();
+}
+function parseBulk(text){
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
+    let role = '', name = '';
+    if(/[\t,]/.test(line)){
+      const p = line.split(/[\t,]/).map(s => s.trim()).filter(Boolean);
+      if(p.length === 1) name = p[0]; else { role = p[0]; name = p[1]; }
+    }else{
+      const p = line.split(/\s+/);
+      name = p.pop(); role = p.join(' ');
+    }
+    return { id: rid(), role, name, extra: {} };
+  }).filter(r => r.name);
+}
+
+/* ───────── 등록부 상세 ───────── */
+async function viewReg(id){
+  $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
+  const snap = await getDoc(doc(db, 'registers', id));
+  if(!snap.exists()){
+    $app.innerHTML = '<div class="card"><h2>등록부를 찾을 수 없습니다</h2><a class="btn" href="#">목록으로</a></div>';
+    return;
+  }
+  const d = snap.data();
+  S.regId = id;
+  S.reg = { title: '', date: '', time: '', place: '', closed: false, archived: false, ...d,
+            columns: d.columns || [], rows: (d.rows || []).map(r => ({ extra: {}, ...r })) };
+  document.title = S.reg.title || '연수등록부';
+  const url = signUrl(id);
+  const qr = qrDataUrl(url);
+
+  $app.innerHTML = `
+    <div class="top no-print"><h1>등록부 관리</h1><div class="btns"><a class="btn" href="#">← 목록으로</a></div></div>
+    ${S.reg.archived ? '<p class="notice no-print">보관함에 있는 등록부입니다. 서명은 받을 수 없고, 보관함에서 되살릴 수 있습니다.</p>' : ''}
+
+    <section class="card no-print">
+      <h2>연수 정보</h2>
+      <div class="grid">
+        <label class="f wide">연수명 (등록부 제목) <input type="text" data-info="title" value="${esc(S.reg.title)}"></label>
+        <label class="f">날짜 <input type="date" data-info="date" value="${esc(S.reg.date)}"></label>
+        <label class="f">시간 <input type="text" data-info="time" value="${esc(S.reg.time)}" placeholder="15:00~16:30"></label>
+        <label class="f">장소 <input type="text" data-info="place" value="${esc(S.reg.place)}"></label>
+      </div>
+    </section>
+
+    <section class="card no-print">
+      <h2>서명 링크</h2>
+      <div class="linkrow">
+        <div class="l">
+          <input type="text" readonly value="${esc(url)}" onclick="this.select()" aria-label="서명 링크">
+          <div class="btns">
+            <button class="primary" data-act="copylink">링크 복사</button>
+            <a class="btn" href="${esc(url)}" target="_blank" rel="noopener">서명 화면 열어 보기</a>
+            <button data-act="toggleclose" id="btn-close"></button>
+          </div>
+          <p class="small" style="margin:12px 0 0">서명 현황 <span class="count" id="count">0/0</span> <span class="muted" id="closed-note"></span></p>
+        </div>
+        ${qr ? `<button class="qr" data-act="bigqr" title="QR 코드 크게 보기" aria-label="QR 코드 크게 보기"><img src="${qr}" alt=""></button>` : ''}
+      </div>
+    </section>
+
+    <section class="card no-print">
+      <h2>명단</h2>
+      <div id="editor"></div>
+      <div class="editbtns">
+        <button data-act="addrow">＋ 사람 추가</button>
+        <button data-act="bulk">명단 한꺼번에 붙여넣기</button>
+        <button data-act="addcol">＋ 열 추가</button>
+        <button data-act="savedefault">이 명단을 기본 명단으로 저장</button>
+      </div>
+    </section>
+
+    <section class="card printable">
+      <div class="previewbar no-print">
+        <h2 style="margin:0">등록부 미리보기</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <label>한 쪽 줄 수
+            <select id="perside">
+              <option value="15">15줄 (30명)</option><option value="20" selected>20줄 (40명)</option><option value="25">25줄 (50명)</option>
+            </select></label>
+          <button class="primary" data-act="print">PDF로 저장 / 인쇄</button>
+        </div>
+      </div>
+      <div class="sheets" id="sheets"></div>
+    </section>`;
+
+  $('#perside').value = String(S.perSide);
+  S.ed = { rows: S.reg.rows, cols: S.reg.columns, withSign: true, mount: $('#editor'), changed: regChanged };
+  renderEditor();
+  paintClosed();
+
+  S.unsub = onSnapshot(collection(db, 'registers', id, 'signs'), s => {
+    const m = {}; s.forEach(x => { m[x.id] = x.data(); });
+    S.signs = m; paintSigns();
+  }, e => console.error(e));
+}
+
+function saveReg(){
+  const r = S.reg, id = S.regId;
+  return updateDoc(doc(db, 'registers', id), {
+    title: r.title, date: r.date, time: r.time, place: r.place,
+    columns: r.columns, rows: r.rows, closed: !!r.closed
+  });
+}
+function regChanged(){ scheduleSave(saveReg); renderSheets(); }
+
+function paintClosed(){
+  const c = !!S.reg.closed;
+  $('#btn-close').textContent = c ? '서명 다시 받기' : '서명 마감하기';
+  $('#closed-note').textContent = c ? '(마감됨: 지금은 서명할 수 없습니다)' : '';
+}
+function paintSigns(){
+  if(!S.reg) return;
+  let n = 0;
+  S.reg.rows.forEach(r => {
+    const sg = S.signs[r.id];
+    const has = sg && okImg(sg.dataUrl);
+    if(has) n++;
+    const cell = document.querySelector(`[data-signcell="${CSS.escape(r.id)}"]`);
+    if(cell) cell.innerHTML = has
+      ? `<img src="${sg.dataUrl}" alt="서명 완료"><button data-act="clearsign">지우기</button>`
+      : '<span class="muted small">미서명</span>';
+  });
+  const $c = $('#count'); if($c) $c.textContent = `${n}/${S.reg.rows.length}`;
+  renderSheets();
+}
+
+function renderSheets(){
+  const mount = $('#sheets'); if(!mount || !S.reg) return;
+  const { rows, columns: cols } = S.reg, P = S.perSide;
+  const pages = Math.max(1, Math.ceil(rows.length / (P * 2)));
+  const k = cols.length;
+  const wNo = 4.6, wRole = k ? 10.5 : 12.5, wName = k ? 9 : 10.5, wX = k ? Math.min(7.5, 13 / k) : 0;
+  const wSign = 50 - wNo - wRole - wName - wX * k;
+  const half = `<col style="width:${wNo}%"><col style="width:${wRole}%"><col style="width:${wName}%">${cols.map(() => `<col style="width:${wX}%">`).join('')}<col style="width:${wSign}%">`;
+  const hd = cls => `<th class="no${cls}">연번</th><th>직위/담당</th><th>성명</th>${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}<th>서명</th>`;
+  const cell = (idx, cls) => {
+    const r = rows[idx];
+    if(!r) return `<td class="no${cls}"></td><td></td><td></td>${cols.map(() => '<td></td>').join('')}<td class="sg"></td>`;
+    const sg = S.signs[r.id];
+    return `<td class="no${cls}">${idx + 1}</td><td>${esc(r.role)}</td><td>${esc(r.name)}</td>${cols.map(c => `<td>${esc(r.extra?.[c.key] ?? '')}</td>`).join('')}<td class="sg">${sg && okImg(sg.dataUrl) ? `<img src="${sg.dataUrl}" alt="서명">` : ''}</td>`;
+  };
+  const sub = [
+    S.reg.date || S.reg.time ? `<span>일시: ${esc([fmtDate(S.reg.date), S.reg.time].filter(Boolean).join(' '))}</span>` : '',
+    S.reg.place ? `<span>장소: ${esc(S.reg.place)}</span>` : ''
+  ].join('');
+  let out = '';
+  for(let p = 0; p < pages; p++){
+    const base = p * P * 2;
+    let body = '';
+    for(let i = 0; i < P; i++) body += `<tr>${cell(base + i, '')}${cell(base + P + i, ' split')}</tr>`;
+    out += `<section class="sheet r${P}">
+      <h2>${esc(S.reg.title || '연수등록부')}</h2>
+      ${sub ? `<p class="sub">${sub}</p>` : ''}
+      <table><colgroup>${half}${half}</colgroup><thead><tr>${hd('')}${hd(' split')}</tr></thead><tbody>${body}</tbody></table>
+      ${pages > 1 ? `<p class="pg">${p + 1} / ${pages}</p>` : ''}
+    </section>`;
+  }
+  mount.innerHTML = out;
+}
+
+/* ───────── 기본 명단 ───────── */
+async function viewRoster(){
+  $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
+  const snap = await getDoc(doc(db, 'settings', 'roster'));
+  S.roster = (snap.exists() ? (snap.data().members || []) : []).map(m => ({ id: m.id || rid(), role: m.role || '', name: m.name || '', extra: {} }));
+  $app.innerHTML = `
+    <div class="top"><h1>기본 명단 관리</h1><div class="btns"><a class="btn" href="#">← 목록으로</a></div></div>
+    <section class="card">
+      <p class="muted small" style="margin:0 0 12px">여기 넣어 둔 명단이 새 등록부를 만들 때 자동으로 들어갑니다. 이미 만든 등록부의 명단은 바뀌지 않습니다. 고치면 바로 저장됩니다.</p>
+      <div id="editor"></div>
+      <div class="editbtns">
+        <button data-act="addrow">＋ 사람 추가</button>
+        <button data-act="bulk">명단 한꺼번에 붙여넣기</button>
+      </div>
+    </section>`;
+  S.ed = { rows: S.roster, cols: [], withSign: false, mount: $('#editor'), changed: () => scheduleSave(saveRoster) };
+  renderEditor();
+}
+function saveRoster(){
+  const members = S.roster.map(r => ({ id: r.id, role: r.role, name: r.name }));
+  return setDoc(doc(db, 'settings', 'roster'), { members, updatedAt: serverTimestamp() });
+}
+
+/* ───────── 이벤트 ───────── */
+$app.addEventListener('input', e => {
+  const t = e.target;
+  if(t.dataset.info && S.reg){
+    S.reg[t.dataset.info] = t.value;
+    if(t.dataset.info === 'title') document.title = t.value || '연수등록부';
+    regChanged(); return;
+  }
+  if(!S.ed) return;
+  if(t.dataset.colname){
+    const c = S.ed.cols.find(c => c.key === t.dataset.colname);
+    if(c){ c.label = t.value; S.ed.changed(); }
+    return;
+  }
+  if(t.dataset.f){
+    const tr = t.closest('tr[data-row]'); if(!tr) return;
+    const row = S.ed.rows.find(r => r.id === tr.dataset.row); if(!row) return;
+    const f = t.dataset.f;
+    if(f.startsWith('x:')){ row.extra = row.extra || {}; row.extra[f.slice(2)] = t.value; }
+    else row[f] = t.value;
+    S.ed.changed();
+  }
+});
+$app.addEventListener('change', e => {
+  if(e.target.id === 'perside'){ S.perSide = +e.target.value; renderSheets(); }
+});
+
+$app.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const act = b.dataset.act;
+  try{
+    /* 목록 */
+    if(act === 'new'){ $('#dlg-new').showModal(); return; }
+    if(act === 'copy'){ copyText(signUrl(b.dataset.id)); return; }
+    if(act === 'del'){
+      const r = S.list.find(x => x.id === b.dataset.id); if(!r) return;
+      if(r.count === 0){
+        if(!confirm(`「${r.title}」 등록부를 삭제할까요?\n서명이 없는 등록부라 바로 지워집니다.`)) return;
+        await deleteDoc(doc(db, 'registers', r.id));
+        toast('삭제했습니다');
+      }else{
+        if(!confirm(`「${r.title}」 등록부에는 서명이 들어 있습니다.\n지우지 않고 보관함으로 옮길까요?`)) return;
+        await updateDoc(doc(db, 'registers', r.id), { archived: true });
+        toast('보관함으로 옮겼습니다');
+      }
+      return route();
+    }
+    if(act === 'restore'){ await updateDoc(doc(db, 'registers', b.dataset.id), { archived: false }); toast('되살렸습니다'); return route(); }
+    if(act === 'purge'){
+      const r = S.list.find(x => x.id === b.dataset.id); if(!r) return;
+      if(!confirm(`「${r.title}」 등록부와 서명 ${r.count ?? ''}건을 완전히 삭제합니다.\n되돌릴 수 없습니다. 계속할까요?`)) return;
+      await purgeReg(r.id); toast('완전히 삭제했습니다'); return route();
+    }
+
+    /* 등록부 상세 */
+    if(act === 'copylink'){ copyText(signUrl(S.regId)); return; }
+    if(act === 'bigqr'){
+      $('#qr-title').textContent = S.reg.title || '연수등록부';
+      $('#qr-big').innerHTML = `<img src="${qrDataUrl(signUrl(S.regId))}" alt="서명 화면 QR 코드">`;
+      $('#dlg-qr').showModal(); return;
+    }
+    if(act === 'toggleclose'){
+      S.reg.closed = !S.reg.closed; paintClosed();
+      await flushSave(); await saveReg();
+      toast(S.reg.closed ? '서명을 마감했습니다' : '서명을 다시 받습니다'); return;
+    }
+    if(act === 'print'){ await flushSave(); document.title = S.reg.title || '연수등록부'; window.print(); return; }
+    if(act === 'savedefault'){
+      if(!confirm('지금 이 등록부의 명단(직위/담당, 성명)으로 기본 명단을 바꿉니다.\n계속할까요?')) return;
+      await setDoc(doc(db, 'settings', 'roster'), {
+        members: S.reg.rows.map(r => ({ id: rid(), role: r.role, name: r.name })), updatedAt: serverTimestamp() });
+      toast('기본 명단으로 저장했습니다'); return;
+    }
+    if(act === 'clearsign'){
+      const tr = b.closest('tr[data-row]'); const row = S.reg.rows.find(r => r.id === tr.dataset.row);
+      if(!confirm(`${row.name || '이 사람'}의 서명을 지울까요?`)) return;
+      await deleteDoc(doc(db, 'registers', S.regId, 'signs', row.id)); return;
+    }
+
+    /* 편집 표 공용 */
+    if(!S.ed) return;
+    const { rows, cols } = S.ed;
+    if(act === 'addrow'){
+      rows.push({ id: rid(), role: '', name: '', extra: {} });
+      renderEditor(); S.ed.changed();
+      const inputs = S.ed.mount.querySelectorAll('tbody tr:last-child input'); if(inputs[0]) inputs[0].focus();
+      return;
+    }
+    if(act === 'bulk'){ $('#bulk-text').value = ''; $('#dlg-bulk').showModal(); return; }
+    if(act === 'addcol'){
+      cols.push({ key: 'c' + rid(), label: '비고' });
+      renderEditor(); S.ed.changed(); return;
+    }
+    if(act === 'delcol'){
+      const c = cols.find(c => c.key === b.dataset.col); if(!c) return;
+      if(!confirm(`「${c.label}」 열과 그 안의 내용을 삭제할까요?`)) return;
+      cols.splice(cols.indexOf(c), 1);
+      rows.forEach(r => { if(r.extra) delete r.extra[c.key]; });
+      renderEditor(); S.ed.changed(); return;
+    }
+    const tr = b.closest('tr[data-row]'); if(!tr) return;
+    const i = rows.findIndex(r => r.id === tr.dataset.row); if(i < 0) return;
+    if(act === 'up' || act === 'down'){
+      const j = act === 'up' ? i - 1 : i + 1;
+      if(j < 0 || j >= rows.length) return;
+      [rows[i], rows[j]] = [rows[j], rows[i]];
+      renderEditor(); S.ed.changed(); return;
+    }
+    if(act === 'delrow'){
+      const row = rows[i];
+      const signed = S.ed.withSign && S.signs[row.id];
+      if(!confirm(signed ? `${row.name || '이 사람'}을(를) 명단에서 빼면 서명도 함께 지워집니다.\n계속할까요?` : `${row.name || '이 줄'}을(를) 명단에서 뺄까요?`)) return;
+      rows.splice(i, 1);
+      renderEditor(); S.ed.changed();
+      if(signed) await deleteDoc(doc(db, 'registers', S.regId, 'signs', row.id));
+      return;
+    }
+  }catch(err){ fail(err); }
+});
+
+/* 대화상자 */
+document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+$('#form-new').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.target, btn = form.querySelector('[type=submit]');
+  btn.disabled = true;
+  try{ await createReg(form); $('#dlg-new').close(); }
+  catch(err){ fail(err, '등록부 만들기'); }
+  finally{ btn.disabled = false; }
+});
+function applyBulk(replace){
+  if(!S.ed) return;
+  const add = parseBulk($('#bulk-text').value);
+  if(!add.length){ alert('붙여넣은 내용에서 이름을 찾지 못했습니다.'); return; }
+  if(replace){
+    const signedCount = S.ed.withSign ? S.ed.rows.filter(r => S.signs[r.id]).length : 0;
+    if(!confirm(`기존 명단 ${S.ed.rows.length}명을 지우고 새 명단 ${add.length}명으로 바꿉니다.` + (signedCount ? `\n이미 받은 서명 ${signedCount}건도 함께 지워집니다.` : '') + '\n계속할까요?')) return;
+    const old = S.ed.rows.splice(0, S.ed.rows.length);
+    if(S.ed.withSign) old.filter(r => S.signs[r.id]).forEach(r => deleteDoc(doc(db, 'registers', S.regId, 'signs', r.id)).catch(console.error));
+  }
+  S.ed.rows.push(...add);
+  renderEditor(); S.ed.changed();
+  $('#dlg-bulk').close();
+  toast(`${add.length}명을 넣었습니다`);
+}
+$('#bulk-append').addEventListener('click', () => applyBulk(false));
+$('#bulk-replace').addEventListener('click', () => applyBulk(true));
+
+/* 시작 */
+(async () => {
+  try{ await signInAnonymously(auth); await route(); }
+  catch(e){
+    console.error(e);
+    $app.innerHTML = `<div class="card"><h2>연결하지 못했습니다</h2><p class="muted">${esc(errText(e))}</p></div>`;
+  }
+})();
+</script>
+</body>
+</html>
