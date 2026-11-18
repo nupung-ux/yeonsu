@@ -126,6 +126,19 @@
   .cursign{display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--sub);margin-bottom:8px}
   .cursign img{height:40px;max-width:140px;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:#fff;padding:2px}
   .err{color:var(--warn);font-weight:700;margin:10px 0 0}
+  .req{color:var(--warn);font-weight:700;margin-left:2px}
+  .reqnote{margin:-6px 0 12px;font-size:.85rem;color:var(--sub)}
+  textarea.short{min-height:84px}
+  .noticebox{margin:12px 0 0;background:#fff7e0;border:1px solid #ecd58b;border-radius:10px;padding:10px 12px;font-size:.93rem;white-space:pre-wrap;overflow-wrap:anywhere}
+  .noticebox b{display:block;margin-bottom:2px}
+  .mine h2{margin-bottom:8px}
+  .mine form{display:flex;gap:8px;flex-wrap:wrap}
+  .mine form input{flex:1 1 180px;width:auto;max-width:320px}
+  .mine-sum{margin:14px 0 10px;font-weight:700}
+  .mine .cols{gap:12px}
+  .mine h3{margin:0 0 8px;font-size:.95rem}
+  .mine .item{padding:9px 12px}
+  .mine .it-side{flex-direction:row;align-items:center}
   #dlg-qr{text-align:center}
   #dlg-qr img{width:min(400px,76vw);height:auto;image-rendering:pixelated}
   #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1c2733;color:#fff;padding:9px 16px;border-radius:999px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
@@ -200,7 +213,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, getDocs, collection,
-         onSnapshot, query, orderBy, serverTimestamp, getCountFromServer, arrayUnion, arrayRemove }
+         onSnapshot, query, orderBy, serverTimestamp, getCountFromServer, arrayUnion, arrayRemove, deleteField }
   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -233,7 +246,7 @@ const FIELDS = [
   { key: 'hours',  label: '이수시간', ph: '예: 2시간' },
   { key: 'cert',   label: '이수증 제출', options: ['제출', '미제출'] }
 ];
-const DEFAULT_FIELDS = ['period', 'number', 'hours', 'cert'];
+const DEFAULT_FIELDS = ['period', 'course', 'number', 'hours'];
 
 /* ───────── 도구 ───────── */
 const $app = document.getElementById('app');
@@ -318,11 +331,11 @@ function saveRoster(){
 /* ───────── 화면 전환 ───────── */
 async function route(){
   await flushSave();
-  S.unsubs.forEach(u => u()); S.unsubs = [];
+  S.unsubs.forEach(u => u()); S.unsubs = []; clearTimeout(syncTimer);
   S.tid = null; S.t = null; S.recs = {}; S.sel.clear();
   const h = decodeURIComponent(location.hash.slice(1));
   try{
-    if(h.startsWith('t/')) await viewTraining(h.slice(2));
+    if(h.startsWith('t/')){ const [tid, rowId] = h.slice(2).split('/'); await viewTraining(tid, rowId); }
     else if(h === 'roster') await viewRoster();
     else await viewHome(h === 'archive');
   }catch(e){
@@ -339,7 +352,7 @@ async function viewHome(archived){
   const [snap] = await Promise.all([
     getDocs(query(collection(db, 'trainings'), orderBy('createdAt', 'desc'))), loadRoster() ]);
   const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => !!t.archived === archived);
-  const counts = await Promise.all(list.map(t =>
+  const counts = await Promise.all(list.map(t => t.done ? Object.keys(t.done).length :
     getCountFromServer(collection(db, 'trainings', t.id, 'records')).then(s => s.data().count).catch(() => null)));
   list.forEach((t, i) => t.count = counts[i]);
   list.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
@@ -375,9 +388,52 @@ async function viewHome(archived){
     <div class="top"><h1>${esc(S.roster.school)} 연수 등록부</h1>
       <div class="btns"><button class="primary big" data-act="new">＋ 연수 등록</button><a class="btn big" href="#roster" style="padding:11px 18px">명부 관리</a></div></div>
     ${S.roster.members.length ? '' : '<p class="notice">교직원 명부가 아직 비어 있습니다. <a href="#roster">명부 관리</a>에서 교원, 교직원, 봉사자 명부를 먼저 넣어 두면 연수를 등록할 때 대상을 한 번에 불러올 수 있습니다.</p>'}
+    <section class="card mine">
+      <h2>내 연수 기록 찾기</h2>
+      <form id="mine-form"><input type="search" id="mine-q" placeholder="이름을 입력하세요" aria-label="이름" autocomplete="off"><button class="primary" type="submit">찾기</button></form>
+      <div id="mine-result"></div>
+    </section>
     <div class="cols">${col('online', '온라인', 'on')}${col('offline', '오프라인', 'off')}</div>
     <p class="muted small" style="margin:14px 0 0">완료요구일이 지난 연수는 초록색으로 표시됩니다. 숫자는 「기록한 사람 / 대상 인원」입니다.</p>
     <p class="foot-links"><a href="#archive">보관함 보기</a></p>`;
+  $('#mine-form').addEventListener('submit', e => { e.preventDefault(); findMine($('#mine-q').value); });
+  let saved = ''; try{ saved = sessionStorage.getItem('mineName') || ''; }catch(_){}
+  if(saved){ $('#mine-q').value = saved; findMine(saved); }
+}
+
+/* 이름으로 내가 기록한 연수, 아직 기록하지 않은 연수 찾기 */
+async function findMine(name){
+  const box = $('#mine-result'), q = norm(name);
+  try{ sessionStorage.setItem('mineName', name.trim()); }catch(_){}
+  if(!q){ box.innerHTML = ''; return; }
+  box.innerHTML = '<p class="muted small" style="margin:12px 0 0">찾는 중입니다…</p>';
+  /* 예전에 만든 연수는 기록 요약이 없을 수 있어 한 번 읽어 온다 */
+  await Promise.all(S.list.filter(t => !t.done).map(async t => {
+    const m = {}; (await getDocs(collection(db, 'trainings', t.id, 'records'))).forEach(d => { m[d.id] = d.data().name || ''; });
+    t.done = m;
+  }));
+  const todo = [], done = [], unknown = [];
+  S.list.forEach(t => {
+    let hit = false;
+    (t.rows || []).forEach(r => {
+      const rec = r.id in t.done;
+      if(norm(r.name) === q || (rec && norm(t.done[r.id]) === q)){ hit = true; (rec ? done : todo).push({ t, r }); }
+    });
+    if(!hit) unknown.push(t);
+  });
+  const item = ({ t, r }) => `<li><a class="item${isPast(t) ? ' past' : ''}" href="#t/${esc(t.id)}/${esc(r.id)}">
+      <span class="it-title">${esc(t.title)}</span>
+      <span class="it-meta">${esc([r.role, t.due ? fmtDate(t.due) + (isOnline(t) ? '까지' : '') : ''].filter(Boolean).join('  |  ') || ' ')}</span>
+      <span class="it-side"><span class="badge ${isOnline(t) ? 'on' : 'off'}">${isOnline(t) ? '온라인' : '오프라인'}</span></span></a></li>`;
+  const blank = unknown.filter(t => (t.rows || []).some(r => !r.name && !(r.id in t.done)));
+  box.innerHTML = `
+    <p class="mine-sum">「${esc(name.trim())}」 님: 아직 기록하지 않은 연수 ${todo.length}건, 기록한 연수 ${done.length}건</p>
+    <div class="cols">
+      <div><h3>아직 기록하지 않은 연수</h3>${todo.length ? `<ul class="list">${todo.map(item).join('')}</ul>` : '<p class="muted small" style="margin:0">없습니다.</p>'}</div>
+      <div><h3>기록한 연수</h3>${done.length ? `<ul class="list">${done.map(item).join('')}</ul>` : '<p class="muted small" style="margin:0">없습니다.</p>'}</div>
+    </div>
+    <p class="muted small" style="margin:12px 0 0">연수를 누르면 본인 줄의 입력 창이 바로 열립니다. 이름은 명단에 적힌 것과 똑같이 입력해야 찾을 수 있습니다.</p>
+    ${blank.length ? `<p class="muted small" style="margin:6px 0 0">아래 ${blank.length}건은 명단에 이름이 비어 있는 줄이 있어 대상인지 알 수 없습니다. 직접 열어 확인해 주세요: ${blank.map(t => `<a href="#t/${esc(t.id)}">${esc(t.title)}</a>`).join(', ')}</p>` : ''}`;
 }
 
 /* ───────── 연수 등록 / 정보 수정 ───────── */
@@ -388,12 +444,13 @@ async function openForm(existing){
   const dlg = $('#dlg-form');
   dlg.innerHTML = `<form class="t-${t.type}" id="tform">
     <h2>${existing ? '연수 정보 수정' : '연수 등록'}</h2>
+    <p class="reqnote"><span class="req">*</span> 표시는 꼭 입력해야 하는 칸입니다.</p>
     <div class="stack">
       <div class="seg" role="radiogroup" aria-label="연수 형태">
         <label><input type="radio" name="type" value="online" ${t.type === 'online' ? 'checked' : ''} ${existing ? 'disabled' : ''}>온라인 연수</label>
         <label><input type="radio" name="type" value="offline" ${t.type === 'offline' ? 'checked' : ''} ${existing ? 'disabled' : ''}>오프라인 연수</label>
       </div>
-      <label class="f">연수명 <input type="text" name="title" required value="${esc(t.title)}" placeholder="예: 2026 학교안전교육 연수"></label>
+      <label class="f">연수명<span class="req">*</span> <input type="text" name="title" required value="${esc(t.title)}" placeholder="예: 2026 학교안전교육 연수"></label>
       ${existing ? '' : `<fieldset><legend>연수 대상 (명부에서 한 번에 불러오기)</legend>
         ${r.members.length ? `<div class="checks">${r.groups.map(g => `<label class="chk"><input type="checkbox" name="grp" value="${esc(g.id)}"> ${esc(g.name)} <small class="muted">${cnt(g.id)}명</small></label>`).join('')}</div>`
           : '<p class="muted small" style="margin:0">명부가 비어 있습니다. 빈 명단으로 만들어지고, 나중에 사람을 추가할 수 있습니다.</p>'}
@@ -406,29 +463,30 @@ async function openForm(existing){
       <div class="only-on stack">
         <div class="two">
           <label class="f">완료요구일 <input type="date" name="due" value="${esc(isOnline(t) ? t.due : '')}"></label>
-          <label class="f">확인 방법 <select name="needSign"><option value="0" ${t.needSign ? '' : 'selected'}>기록만</option><option value="1" ${t.needSign ? 'selected' : ''}>기록 + 서명</option></select></label>
-        </div>
-        <div class="two">
-          <label class="f">교육방법 <input type="text" name="method" value="${esc(t.method)}" placeholder="예: 원격연수"></label>
           <label class="f">교육기관 <input type="text" name="org" value="${esc(t.org)}" placeholder="예: 경기도교육청 온라인 연수원"></label>
         </div>
         <div class="two">
           <label class="f">이수기간 <input type="text" name="period" value="${esc(t.period)}" placeholder="예: 2026.11.1.~11.30."></label>
-          <label class="f">이수증 제출 여부 <input type="text" name="certNote" value="${esc(t.certNote)}" placeholder="예: 제출 필요 / 개인 보관"></label>
+          <fieldset><legend>이수증 제출 여부</legend>
+            <div class="checks">${['제출', '미제출'].map(o => `<label class="chk"><input type="checkbox" name="certNote" value="${o}" ${t.certNote === o ? 'checked' : ''}> ${o}</label>`).join('')}</div>
+          </fieldset>
         </div>
         <fieldset><legend>각자 입력할 항목</legend>
-          <div class="checks">${FIELDS.map(f => `<label class="chk"><input type="checkbox" name="fld" value="${f.key}" ${(t.fields || []).includes(f.key) ? 'checked' : ''}> ${f.label}</label>`).join('')}</div>
+          <div class="checks">${FIELDS.map(f => `<label class="chk"><input type="checkbox" name="fld" value="${f.key}" ${(t.fields || []).includes(f.key) ? 'checked' : ''}> ${f.label}</label>`).join('')}
+            <label class="chk"><input type="checkbox" name="fldSign" ${isOnline(t) && t.needSign ? 'checked' : ''}> 전자서명</label></div>
         </fieldset>
       </div>
 
       <div class="only-off stack">
         <div class="two">
-          <label class="f">연수 날짜 <input type="date" name="date" value="${esc(!isOnline(t) ? t.due : '')}"></label>
+          <label class="f">연수 날짜<span class="req">*</span> <input type="date" name="date" ${t.type === 'offline' ? 'required' : ''} value="${esc(!isOnline(t) ? t.due : '')}"></label>
           <label class="f">시간 <input type="text" name="time" value="${esc(t.time)}" placeholder="예: 15:00~16:30"></label>
         </div>
         <label class="f">장소 <input type="text" name="place" value="${esc(t.place)}" placeholder="예: 시청각실"></label>
         <p class="muted small" style="margin:0">오프라인 연수는 명단에서 본인 줄을 눌러 전자서명을 받습니다.</p>
       </div>
+
+      <label class="f">연수 관련 안내 사항 <textarea name="notice" class="short" style="margin-top:4px;font-weight:400" placeholder="예: 이수 후 이수증을 교무실로 제출해 주세요. 연수 주소: ...">${esc(t.notice)}</textarea></label>
     </div>
     <div class="dbtns"><button type="button" data-close>취소</button><button type="submit" class="primary">${existing ? '저장' : '등록'}</button></div>
   </form>`;
@@ -437,7 +495,9 @@ async function openForm(existing){
   let auto = !existing;
   tgt.addEventListener('input', () => { auto = false; });
   form.addEventListener('change', e => {
-    if(e.target.name === 'type') form.className = 't-' + e.target.value;
+    if(e.target.name === 'type'){ form.className = 't-' + e.target.value; form.elements.date.required = e.target.value === 'offline'; }
+    if(e.target.name === 'certNote' && e.target.checked)
+      form.querySelectorAll('[name=certNote]').forEach(c => { if(c !== e.target) c.checked = false; });
     if(e.target.name === 'grp' && auto){
       const on = [...form.querySelectorAll('[name=grp]:checked')].map(c => c.value);
       tgt.value = on.length === r.groups.length && on.length > 1 ? '전직원' : r.groups.filter(g => on.includes(g.id)).map(g => g.name).join(', ');
@@ -449,9 +509,10 @@ async function openForm(existing){
     try{
       const v = n => (form.elements[n]?.value || '').trim();
       const type = existing ? existing.type : form.querySelector('[name=type]:checked').value;
-      const data = { title: v('title'), target: v('target'), manager: v('manager') };
+      const data = { title: v('title'), target: v('target'), manager: v('manager'), notice: v('notice') };
       if(type === 'online') Object.assign(data, {
-        due: v('due'), needSign: v('needSign') === '1', method: v('method'), org: v('org'), period: v('period'), certNote: v('certNote'),
+        due: v('due'), needSign: form.elements.fldSign.checked, org: v('org'), period: v('period'),
+        certNote: (form.querySelector('[name=certNote]:checked') || {}).value || '',
         fields: [...form.querySelectorAll('[name=fld]:checked')].map(c => c.value) });
       else Object.assign(data, { due: v('date'), time: v('time'), place: v('place'), needSign: true, fields: [] });
       if(existing){
@@ -462,7 +523,7 @@ async function openForm(existing){
         if(r.members.length && !on.length && !confirm('연수 대상을 고르지 않았습니다.\n빈 명단으로 등록할까요?')){ btn.disabled = false; return; }
         const rows = r.groups.filter(g => on.includes(g.id)).flatMap(g =>
           r.members.filter(m => m.group === g.id).map(m => ({ id: rid(), group: g.name, role: m.role, name: m.name })));
-        const ref = await addDoc(collection(db, 'trainings'), { ...data, type, rows, archived: false, createdAt: serverTimestamp() });
+        const ref = await addDoc(collection(db, 'trainings'), { ...data, type, rows, done: {}, archived: false, createdAt: serverTimestamp() });
         dlg.close();
         location.hash = 't/' + ref.id;
       }
@@ -472,7 +533,19 @@ async function openForm(existing){
 }
 
 /* ───────── 연수 상세: 명단에 기록, 서명 ───────── */
-async function viewTraining(id){
+/* 연수 문서의 done(누가 기록했는지 요약)을 실제 기록과 맞춘다. 첫 화면의 「내 연수 기록 찾기」가 이 요약을 읽는다 */
+let syncTimer = null;
+function syncDone(){
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    if(!S.t || !S.tid) return;
+    const want = {}; Object.keys(S.recs).sort().forEach(k => { want[k] = S.recs[k].name || ''; });
+    const have = {}; Object.keys(S.t.done || {}).sort().forEach(k => { have[k] = S.t.done[k]; });
+    if(S.t.done && JSON.stringify(want) === JSON.stringify(have)) return;
+    try{ await updateDoc(doc(db, 'trainings', S.tid), { done: want }); }catch(e){ console.error(e); }
+  }, 1500);
+}
+async function viewTraining(id, openRow){
   $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
   const snap = await getDoc(doc(db, 'trainings', id));
   if(!snap.exists()){
@@ -513,7 +586,8 @@ async function viewTraining(id){
   }, e => console.error(e)));
   S.unsubs.push(onSnapshot(collection(db, 'trainings', id, 'records'), s => {
     const m = {}; s.forEach(x => { m[x.id] = x.data(); });
-    S.recs = m; paintRows();
+    S.recs = m; paintRows(); syncDone();
+    if(openRow){ const row = S.t.rows.find(r => r.id === openRow); openRow = null; if(row && !$('#dlg-entry').open) openEntry(row); }
   }, e => console.error(e)));
 }
 
@@ -521,7 +595,7 @@ function paintInfo(){
   const t = S.t, el = $('#info'); if(!t || !el) return;
   document.title = t.title || '연수 등록부';
   const rows = [['연수대상', t.target], ['담당자', t.manager]];
-  if(isOnline(t)) rows.push(['완료요구일', fmtDate(t.due)], ['교육방법', t.method], ['교육기관', t.org], ['이수기간', t.period], ['이수증 제출', t.certNote]);
+  if(isOnline(t)) rows.push(['완료요구일', fmtDate(t.due)], ['교육기관', t.org], ['이수기간', t.period], ['이수증 제출 여부', t.certNote]);
   else rows.push(['일시', [fmtDate(t.due), t.time].filter(Boolean).join(' ')], ['장소', t.place]);
   el.innerHTML = `<div class="tags">
       <span class="badge ${isOnline(t) ? 'on' : 'off'}">${isOnline(t) ? '온라인' : '오프라인'}</span>
@@ -529,7 +603,8 @@ function paintInfo(){
       ${isPast(t) ? '<span class="badge ok">기한 지남</span>' : ''}${t.archived ? '<span class="badge">보관함</span>' : ''}
     </div>
     <h1>${esc(t.title)}</h1>
-    <dl class="meta">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>`;
+    <dl class="meta">${rows.filter(r => r[1]).map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>
+    ${t.notice ? `<p class="noticebox"><b>안내 사항</b>${esc(t.notice)}</p>` : ''}`;
   $('#guide').textContent = isOnline(t)
     ? '본인 줄을 눌러 이수 내용을 입력해 주세요. 명단에 없으면 아래 「명단에 없는 사람 추가」를 누릅니다.'
     : '본인 줄을 눌러 서명해 주세요. 명단에 없으면 아래 「명단에 없는 사람 추가」를 누릅니다.';
@@ -574,12 +649,12 @@ function openEntry(row){
       ${isNew ? `<div class="two">
         <label class="f">구분 <select name="group">${groups.map(g => `<option>${esc(g)}</option>`).join('')}</select></label>
         <label class="f">직위/담당 <input type="text" name="role" placeholder="예: 3-2, 조리원"></label></div>` : ''}
-      <label class="f">성명 <input type="text" name="name" required autocomplete="off" value="${esc(row ? nameOf(row) : '')}"></label>
+      <label class="f">성명<span class="req">*</span> <input type="text" name="name" required autocomplete="off" value="${esc(row ? nameOf(row) : '')}"></label>
       ${fields.map(f => f.options
         ? `<label class="f">${f.label} <select name="v_${f.key}">${f.options.map(o => `<option ${(rec?.values?.[f.key] ?? f.options[0]) === o ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`
         : `<label class="f">${f.label} <input type="text" name="v_${f.key}" autocomplete="off" value="${esc(rec?.values?.[f.key] ?? '')}" placeholder="${esc(f.ph || '')}"></label>`).join('')}
       ${t.needSign ? `<div>
-        <label class="f" style="margin-bottom:6px">서명</label>
+        <label class="f" style="margin-bottom:6px">서명<span class="req">*</span></label>
         ${rec && okImg(rec.sign) ? `<div class="cursign"><img src="${rec.sign}" alt="현재 서명">등록된 서명입니다. 아래에 새로 서명하면 바뀝니다.</div>` : ''}
         <div class="padwrap"><canvas id="pad"></canvas><span class="hint" id="hint">이 칸 안에 서명해 주세요</span></div>
         <button type="button" id="pad-clear" style="margin-top:8px;padding:5px 10px;font-size:.85rem">서명 지우기</button>
@@ -616,13 +691,16 @@ function openEntry(row){
         await updateDoc(doc(db, 'trainings', S.tid), { rows: arrayUnion(target) });
       }
       await setDoc(doc(db, 'trainings', S.tid, 'records', target.id), { name, values, sign, uid, updatedAt: serverTimestamp() });
+      await updateDoc(doc(db, 'trainings', S.tid), { ['done.' + target.id]: name });
       dlg.close(); toast(t.needSign ? '서명을 저장했습니다' : '저장했습니다');
     }catch(err){ console.error(err); showErr('저장하지 못했습니다. ' + errText(err)); btn.disabled = false; }
   });
   const $clear = $('#e-clear'), $remove = $('#e-remove');
   if($clear) $clear.addEventListener('click', async () => {
     if(!confirm(`${nameOf(row) || row.role}의 기록${t.needSign ? '과 서명' : ''}을 지울까요?`)) return;
-    try{ await deleteDoc(doc(db, 'trainings', S.tid, 'records', row.id)); dlg.close(); toast('지웠습니다'); }catch(err){ fail(err, '지우기'); }
+    try{ await deleteDoc(doc(db, 'trainings', S.tid, 'records', row.id));
+      await updateDoc(doc(db, 'trainings', S.tid), { ['done.' + row.id]: deleteField() });
+      dlg.close(); toast('지웠습니다'); }catch(err){ fail(err, '지우기'); }
   });
   if($remove) $remove.addEventListener('click', async () => {
     if(!confirm(`${row.role} ${row.name || ''} 줄을 이 연수 명단에서 뺄까요?\n(교직원 명부에는 그대로 남습니다)`)) return;
@@ -691,7 +769,7 @@ function renderSheets(){
 
   if(isOnline(t)){
     const fields = fieldsOf(t);
-    const info = [['교육방법', t.method], ['교육기관', t.org], ['이수기간', t.period], ['이수증 제출 여부', t.certNote]];
+    const info = [['교육기관', t.org], ['이수기간', t.period], ['이수증 제출 여부', t.certNote]];
     mount.innerHTML = `<section class="sheet online">
       <h2>${esc(t.title)}</h2>
       <p class="sub"><span>연수 이수명단</span><span>${esc(school)}</span></p>
