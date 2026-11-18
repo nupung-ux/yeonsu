@@ -85,6 +85,7 @@
   table.edit{min-width:520px}
   table.edit td{padding:5px 6px}
   table.edit input,table.edit select{padding:6px 8px}
+  .c-chk{width:36px;text-align:center!important} .c-chk input{width:17px;height:17px;margin:0;vertical-align:middle}
   .c-grp{width:130px} .c-tools{width:150px;white-space:nowrap;text-align:right!important}
   .c-tools button{padding:4px 8px;font-size:.82rem}
   .groups{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
@@ -279,7 +280,7 @@ const S = {
   roster: null,          // { school, groups:[{id,name}], members:[{id,group,role,name}] }
   list: [],
   tid: null, t: null, recs: {}, unsubs: [],
-  saveTimer: null, saveFn: null, pad: null
+  saveTimer: null, saveFn: null, pad: null, sel: new Set()
 };
 function scheduleSave(fn){ S.saveFn = fn; clearTimeout(S.saveTimer); S.saveTimer = setTimeout(flushSave, 600); }
 async function flushSave(){
@@ -313,7 +314,7 @@ function saveRoster(){
 async function route(){
   await flushSave();
   S.unsubs.forEach(u => u()); S.unsubs = [];
-  S.tid = null; S.t = null; S.recs = {};
+  S.tid = null; S.t = null; S.recs = {}; S.sel.clear();
   const h = decodeURIComponent(location.hash.slice(1));
   try{
     if(h.startsWith('t/')) await viewTraining(h.slice(2));
@@ -748,6 +749,9 @@ async function viewRoster(){
         <button data-act="xlsx-down">엑셀 서식 내려받기</button>
         <button data-act="xlsx-up">엑셀 파일 불러오기</button>
         <input type="file" id="xlsx-file" accept=".xlsx,.xls,.csv" hidden>
+        <span style="flex:1"></span>
+        <button class="danger" data-act="delsel" id="btn-delsel" disabled>선택 삭제</button>
+        <button class="danger" data-act="delall" id="btn-delall">전체 삭제</button>
       </div>
       <p class="muted small" style="margin:10px 0 0">엑셀에서 직위와 성명 칸을 여러 줄 복사한 뒤, 표에서 시작할 칸(직위/담당 또는 성명)을 누르고 Ctrl+V 하면 그 줄부터 아래로 채워집니다. 줄이 모자라면 자동으로 늘어납니다.</p>
     </section>`;
@@ -762,13 +766,22 @@ function paintRoster(){
     + '<button data-act="addgroup">＋ 구분 추가</button>';
   $('#seedbox').innerHTML = r.members.length ? '' : `<p class="notice">명부가 비어 있습니다. 기존 구글 시트에 있던 직위/담당 65개를 그대로 불러온 뒤 이름만 채워 넣을 수 있습니다.<br><button data-act="seed" style="margin-top:8px">기존 시트의 직위 불러오기</button></p>`;
   const opts = sel => r.groups.map(g => `<option value="${esc(g.id)}" ${g.id === sel ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
-  $('#editor').innerHTML = `<div class="tablewrap"><table class="edit"><thead><tr><th class="c-no">연번</th><th class="c-grp">구분</th><th>직위/담당</th><th>성명</th><th class="c-tools"></th></tr></thead><tbody>${
-    r.members.map((m, i) => `<tr data-m="${esc(m.id)}"><td class="c-no">${i + 1}</td>
+  $('#editor').innerHTML = `<div class="tablewrap"><table class="edit"><thead><tr><th class="c-chk"><input type="checkbox" id="chk-all" aria-label="전체 선택" ${r.members.length && r.members.every(m => S.sel.has(m.id)) ? 'checked' : ''}></th><th class="c-no">연번</th><th class="c-grp">구분</th><th>직위/담당</th><th>성명</th><th class="c-tools"></th></tr></thead><tbody>${
+    r.members.map((m, i) => `<tr data-m="${esc(m.id)}"><td class="c-chk"><input type="checkbox" data-sel aria-label="선택" ${S.sel.has(m.id) ? 'checked' : ''}></td><td class="c-no">${i + 1}</td>
       <td><select data-mf="group" aria-label="구분">${opts(m.group)}</select></td>
       <td><input type="text" data-mf="role" value="${esc(m.role)}" aria-label="직위/담당"></td>
       <td><input type="text" data-mf="name" value="${esc(m.name)}" aria-label="성명"></td>
       <td class="c-tools"><button data-act="mup" aria-label="위로">▲</button> <button data-act="mdown" aria-label="아래로">▼</button> <button class="danger" data-act="mdel">삭제</button></td></tr>`).join('')
-    || '<tr><td colspan="5" class="muted" style="text-align:center;padding:18px">아직 등록된 사람이 없습니다.</td></tr>'}</tbody></table></div>`;
+    || '<tr><td colspan="6" class="muted" style="text-align:center;padding:18px">아직 등록된 사람이 없습니다.</td></tr>'}</tbody></table></div>`;
+  paintSel();
+}
+function paintSel(){
+  const r = S.roster, ids = new Set(r.members.map(m => m.id));
+  [...S.sel].forEach(id => { if(!ids.has(id)) S.sel.delete(id); });
+  const b = $('#btn-delsel'), all = $('#btn-delall'), ca = $('#chk-all');
+  if(b){ b.textContent = S.sel.size ? `선택 삭제 (${S.sel.size}명)` : '선택 삭제'; b.disabled = !S.sel.size; }
+  if(all) all.disabled = !r.members.length;
+  if(ca){ ca.checked = r.members.length > 0 && S.sel.size === r.members.length; ca.indeterminate = S.sel.size > 0 && S.sel.size < r.members.length; }
 }
 function parseBulk(text, group){
   return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
@@ -906,6 +919,16 @@ $app.addEventListener('input', e => {
 });
 $app.addEventListener('change', e => {
   const t = e.target;
+  if(t.id === 'chk-all' && S.roster){
+    S.sel = new Set(t.checked ? S.roster.members.map(m => m.id) : []);
+    document.querySelectorAll('#editor [data-sel]').forEach(c => { c.checked = t.checked; });
+    return paintSel();
+  }
+  if(t.dataset.sel !== undefined && S.roster){
+    const id = t.closest('tr').dataset.m;
+    if(t.checked) S.sel.add(id); else S.sel.delete(id);
+    return paintSel();
+  }
   if(t.dataset.mf === 'group' && S.roster){
     const m = S.roster.members.find(m => m.id === t.closest('tr').dataset.m);
     if(m){ m.group = t.value; sortMembers(); paintRoster(); scheduleSave(saveRoster); }
@@ -979,6 +1002,19 @@ $app.addEventListener('click', async e => {
       const rows = document.querySelectorAll('#editor tbody tr'); const tr2 = rows[rows.length - 1];
       if(tr2){ tr2.scrollIntoView({ block: 'center' }); const inp = tr2.querySelector('input'); if(inp) inp.focus(); }
       return;
+    }
+    if(act === 'delsel'){
+      if(!S.sel.size) return;
+      if(!confirm(`선택한 ${S.sel.size}명을 명부에서 삭제할까요?\n(이미 등록한 연수의 명단은 바뀌지 않습니다)`)) return;
+      const n = S.sel.size;
+      r.members = r.members.filter(m => !S.sel.has(m.id)); S.sel.clear();
+      paintRoster(); scheduleSave(saveRoster); toast(`${n}명을 삭제했습니다`); return;
+    }
+    if(act === 'delall'){
+      if(!r.members.length) return;
+      if(!confirm(`명부 ${r.members.length}명을 모두 삭제할까요?\n구분은 그대로 남고, 이미 등록한 연수의 명단은 바뀌지 않습니다.`)) return;
+      r.members = []; S.sel.clear();
+      paintRoster(); scheduleSave(saveRoster); toast('명부를 모두 삭제했습니다'); return;
     }
     if(act === 'xlsx-down') return await downloadTemplate();
     if(act === 'xlsx-up') return $('#xlsx-file').click();
