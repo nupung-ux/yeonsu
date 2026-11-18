@@ -172,6 +172,15 @@
     <button type="button" id="bulk-ok" class="primary">명부에 추가</button>
   </div>
 </dialog>
+<dialog id="dlg-import">
+  <h2>엑셀 명부 불러오기</h2>
+  <p id="import-msg" style="margin:0"></p>
+  <div class="dbtns">
+    <button type="button" data-close>취소</button>
+    <button type="button" id="import-replace" class="danger">지금 명부를 지우고 바꾸기</button>
+    <button type="button" id="import-add" class="primary">지금 명부 뒤에 추가</button>
+  </div>
+</dialog>
 <dialog id="dlg-qr">
   <h2 id="qr-title"></h2>
   <div id="qr-big"></div>
@@ -736,8 +745,13 @@ async function viewRoster(){
       <div class="editbtns">
         <button data-act="addmember">＋ 사람 추가</button>
         <button data-act="bulk">한꺼번에 붙여넣기</button>
+        <button data-act="xlsx-down">엑셀 서식 내려받기</button>
+        <button data-act="xlsx-up">엑셀 파일 불러오기</button>
+        <input type="file" id="xlsx-file" accept=".xlsx,.xls,.csv" hidden>
       </div>
+      <p class="muted small" style="margin:10px 0 0">엑셀에서 직위와 성명 칸을 여러 줄 복사한 뒤, 표에서 시작할 칸(직위/담당 또는 성명)을 누르고 Ctrl+V 하면 그 줄부터 아래로 채워집니다. 줄이 모자라면 자동으로 늘어납니다.</p>
     </section>`;
+  $('#xlsx-file').addEventListener('change', onXlsxFile);
   $('#school').addEventListener('input', e => { S.roster.school = e.target.value.trim() || DEFAULT_SCHOOL; scheduleSave(saveRoster); });
   paintRoster();
 }
@@ -764,6 +778,116 @@ function parseBulk(text, group){
     return { id: rid(), group, role, name };
   }).filter(m => m.role || m.name);
 }
+
+/* ───────── 엑셀: 서식 내려받기, 불러오기, 표에 바로 붙여넣기 ───────── */
+let xlsxP = null;
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  return xlsxP || (xlsxP = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => res(window.XLSX);
+    s.onerror = () => { xlsxP = null; rej(new Error('엑셀 기능을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.')); };
+    document.head.appendChild(s);
+  }));
+}
+async function downloadTemplate(){
+  const XLSX = await loadXLSX(), r = S.roster;
+  const gname = id => (r.groups.find(g => g.id === id) || {}).name || '';
+  const rows = [['구분', '직위/담당', '성명'], ...r.members.map(m => [gname(m.group), m.role, m.name])];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 12 }, { wch: 18 }, { wch: 14 }];
+  const guide = XLSX.utils.aoa_to_sheet([
+    ['연수 등록부 명부 서식 작성 방법'],
+    [''],
+    ['1. 「명부」 시트의 2번째 줄부터 한 줄에 한 명씩 적습니다. 첫 줄(구분, 직위/담당, 성명)은 지우지 않습니다.'],
+    ['2. 구분에는 ' + r.groups.map(g => g.name).join(', ') + ' 가운데 하나를 적습니다. 새 이름을 적으면 그 구분이 새로 만들어집니다.'],
+    ['3. 구분 칸을 비워 두면 바로 윗줄과 같은 구분으로 들어갑니다.'],
+    ['4. 성명을 비워 두고 직위만 적어도 됩니다.'],
+    ['5. 저장한 뒤 명부 관리 화면의 「엑셀 파일 불러오기」로 올립니다.']
+  ]);
+  guide['!cols'] = [{ wch: 90 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '명부');
+  XLSX.utils.book_append_sheet(wb, guide, '작성 방법');
+  XLSX.writeFile(wb, '연수등록부_명부_서식.xlsx');
+}
+/* 엑셀 표(2차원 배열)를 [{groupName, role, name}]로 바꾼다 */
+function parseSheet(aoa){
+  const clean = v => String(v ?? '').replace(/\s+/g, ' ').trim();
+  let rows = aoa.map(r => r.map(clean)).filter(r => r.some(Boolean));
+  if(!rows.length) return [];
+  let cg = -1, cr = -1, cn = -1;
+  const hi = rows.slice(0, 10).findIndex(r => r.some(c => /성명|이름/.test(c)));
+  if(hi >= 0){
+    rows[hi].forEach((c, i) => {
+      if(cn < 0 && /성명|이름/.test(c)) cn = i;
+      else if(cr < 0 && /직위|담당|직급|학년|반/.test(c)) cr = i;
+      else if(cg < 0 && /구분|분류|소속/.test(c)) cg = i;
+    });
+    rows = rows.slice(hi + 1);
+  }else{
+    const width = Math.max(...rows.map(r => r.length));
+    if(width >= 3){ cg = 0; cr = 1; cn = 2; } else { cr = 0; cn = 1; }
+  }
+  let lastGroup = '';
+  return rows.map(r => {
+    const g = cg >= 0 ? (r[cg] || '') : '';
+    if(g) lastGroup = g;
+    return { groupName: g || lastGroup, role: cr >= 0 ? (r[cr] || '') : '', name: cn >= 0 ? (r[cn] || '') : '' };
+  }).filter(x => x.role || x.name);
+}
+async function onXlsxFile(e){
+  const file = e.target.files[0]; e.target.value = '';
+  if(!file) return;
+  try{
+    const XLSX = await loadXLSX();
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    const ws = wb.Sheets['명부'] || wb.Sheets[wb.SheetNames[0]];
+    const list = parseSheet(XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: false }));
+    if(!list.length) return alert('파일에서 명부를 찾지 못했습니다.\n첫 줄에 구분, 직위/담당, 성명이 있는 서식인지 확인해 주세요.');
+    const names = [...new Set(list.map(x => x.groupName).filter(Boolean))];
+    $('#import-msg').textContent = `「${file.name}」에서 ${list.length}명을 읽었습니다.` + (names.length ? ` (구분: ${names.join(', ')})` : '');
+    $('#import-add').onclick = () => applyImport(list, false);
+    $('#import-replace').onclick = () => applyImport(list, true);
+    $('#dlg-import').showModal();
+  }catch(err){ console.error(err); alert('엑셀 파일을 읽지 못했습니다.\n' + (err.message || '')); }
+}
+function applyImport(list, replace){
+  const r = S.roster;
+  if(replace){
+    if(r.members.length && !confirm(`지금 명부 ${r.members.length}명을 지우고 파일의 ${list.length}명으로 바꿉니다.\n계속할까요?`)) return;
+    r.members = [];
+  }
+  list.forEach(x => {
+    let g = x.groupName ? r.groups.find(g => norm(g.name) === norm(x.groupName)) : r.groups[0];
+    if(!g){ g = { id: 'g' + rid(), name: x.groupName }; r.groups.push(g); }
+    r.members.push({ id: rid(), group: g.id, role: x.role, name: x.name });
+  });
+  sortMembers(); paintRoster(); scheduleSave(saveRoster);
+  $('#dlg-import').close(); toast(`${list.length}명을 불러왔습니다`);
+}
+/* 엑셀에서 복사한 여러 칸을 명부 표에 바로 붙여넣기 */
+$app.addEventListener('paste', e => {
+  const t = e.target;
+  if(!S.roster || t.tagName !== 'INPUT' || !t.dataset.mf) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if(!/[\t\n]/.test(text.replace(/[\r\n]+$/, ''))) return;      // 한 칸짜리는 평소처럼 붙여넣기
+  e.preventDefault();
+  const grid = text.replace(/\r/g, '').replace(/\n+$/, '').split('\n').map(l => l.split('\t').map(c => c.trim()));
+  const r = S.roster;
+  const start = r.members.findIndex(m => m.id === t.closest('tr').dataset.m);
+  const cols = t.dataset.mf === 'role' ? ['role', 'name'] : ['name'];
+  const group = r.members[start].group;
+  let added = 0;
+  grid.forEach((cells, i) => {
+    let m = r.members[start + i];
+    if(!m || m.group !== group){ m = { id: rid(), group, role: '', name: '' }; r.members.splice(start + i, 0, m); added++; }
+    cols.forEach((f, c) => { if(cells[c] !== undefined) m[f] = cells[c]; });
+  });
+  sortMembers(); paintRoster(); scheduleSave(saveRoster);
+  toast(`${grid.length}줄을 붙여넣었습니다` + (added ? ` (${added}줄 추가)` : ''));
+});
 
 /* ───────── 이벤트 ───────── */
 $app.addEventListener('input', e => {
@@ -856,6 +980,8 @@ $app.addEventListener('click', async e => {
       if(tr2){ tr2.scrollIntoView({ block: 'center' }); const inp = tr2.querySelector('input'); if(inp) inp.focus(); }
       return;
     }
+    if(act === 'xlsx-down') return await downloadTemplate();
+    if(act === 'xlsx-up') return $('#xlsx-file').click();
     if(act === 'bulk'){
       $('#bulk-group').innerHTML = r.groups.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');
       $('#bulk-text').value = ''; return $('#dlg-bulk').showModal();
