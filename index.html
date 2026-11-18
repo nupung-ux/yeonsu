@@ -22,7 +22,9 @@
   a{color:var(--accent)}
   [hidden]{display:none!important}
   .muted{color:var(--sub)} .small{font-size:.88rem}
-  .top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:-20px -24px 14px;padding:12px 24px;
+    position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+  @media (max-width:700px){.top{margin:-16px -12px 12px;padding:10px 12px}}
   .btns{display:flex;flex-wrap:wrap;gap:8px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
   button,.btn{font:inherit;font-size:.93rem;font-weight:700;border-radius:10px;border:1.5px solid var(--line);background:#fff;color:var(--ink);padding:8px 13px;cursor:pointer;text-decoration:none;display:inline-block}
@@ -51,22 +53,31 @@
   .list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
   .item{display:grid;grid-template-columns:1fr auto;gap:4px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-decoration:none;color:inherit}
   a.item:hover{border-color:#9db7e0}
-  .item.past{background:#f1f8f3;border-color:#cfe3d6}
   .it-title{font-weight:700;overflow-wrap:anywhere}
   .it-meta{grid-column:1;color:var(--sub);font-size:.86rem}
   .it-side{grid-row:1/3;grid-column:2;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px}
   .prog{font-weight:700;font-variant-numeric:tabular-nums;font-size:.92rem}
   .foot-links{text-align:center;margin-top:18px;font-size:.9rem}
 
-  .home-grid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:20px;align-items:start}
-  .home-grid .mine{position:sticky;top:12px;margin:0;max-height:calc(100vh - 24px);overflow:auto}
-  @media (max-width:1150px){.home-grid{grid-template-columns:1fr}.home-grid .mine{position:static;max-height:none;order:-1}}
+  .home-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+  .mine-col{position:sticky;top:calc(var(--bar-h,60px) + 12px)}
+  .mine-col .mine{margin:0;padding:14px;max-height:calc(100vh - var(--bar-h,60px) - 70px);overflow:auto}
+  .col h2,.mine-col h2{min-height:26px;display:flex;align-items:center;gap:8px;margin:0 0 10px}
+  @media (max-width:1150px){.home-grid{grid-template-columns:1fr}.mine-col{position:static;order:-1}.mine-col .mine{max-height:none}}
   .t-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start}
-  .t-grid>#info{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
+  .t-grid>#info{position:sticky;top:calc(var(--bar-h,60px) + 12px);max-height:calc(100vh - var(--bar-h,60px) - 24px);overflow:auto}
+  .split2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  @media (max-width:900px){.split2{grid-template-columns:1fr}}
+  .item.on{background:#f7f3fe;border-color:#dfd3f6} .item.off{background:#fff6ea;border-color:#f2dcc0}
+  a.item.on:hover{border-color:#b9a0ea} a.item.off:hover{border-color:#e3b579}
+  .list li{display:flex;gap:6px;align-items:stretch}
+  .list li>.item{flex:1;min-width:0}
+  .it-edit{padding:4px 9px;font-size:.82rem;color:var(--sub)}
+  .lock{max-width:420px;margin:30px auto}
   .t-grid>.card{margin:0}
   @media (max-width:1050px){.t-grid{grid-template-columns:1fr}.t-grid>#info{position:static;max-height:none}}
   .badge.warn{background:#fdecea;color:var(--warn)}
-  table.reg td.c-role{width:1%;max-width:9em;white-space:normal}
+  table.reg td.c-role{width:1%;white-space:nowrap}
   table.reg td.nm{width:1%}
   table.reg td.wrap{white-space:normal;overflow-wrap:anywhere}
   table.reg .f-period{min-width:150px} table.reg .f-course{min-width:280px} table.reg .f-number{min-width:190px}
@@ -108,7 +119,7 @@
   table.edit td{padding:5px 6px}
   table.edit input,table.edit select{padding:6px 8px}
   .c-chk{width:36px;text-align:center!important} .c-chk input{width:17px;height:17px;margin:0;vertical-align:middle}
-  .selbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;background:#fff;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .selbar{position:sticky;top:var(--bar-h,60px);z-index:5;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;background:#fff;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:8px}
   .selbtns{display:flex;flex-wrap:wrap;gap:6px}
   .selbtns button{padding:6px 10px;font-size:.86rem}
   .selnum{font-weight:700;color:var(--accent-dark)}
@@ -155,7 +166,8 @@
   .noticebox b{display:block;margin-bottom:2px}
   .mine h2{margin-bottom:8px}
   .mine form{display:flex;gap:8px;flex-wrap:wrap}
-  .mine form input{flex:1 1 180px;width:auto;max-width:320px}
+  .mine form input{flex:1 1 120px;width:auto;min-width:0}
+  .mine form button{padding:7px 11px}
   .mine-sum{margin:14px 0 10px;font-weight:700}
   .mine .cols{gap:12px}
   .mine h3{margin:0 0 8px;font-size:.95rem}
@@ -326,7 +338,7 @@ const S = {
   roster: null,          // { school, groups:[{id,name}], members:[{id,group,role,name}] }
   list: [],
   tid: null, t: null, recs: {}, unsubs: [],
-  saveTimer: null, saveFn: null, pad: null, sel: new Set()
+  saveTimer: null, saveFn: null, pad: null, sel: new Set(), adminOk: false
 };
 function scheduleSave(fn){ S.saveFn = fn; clearTimeout(S.saveTimer); S.saveTimer = setTimeout(flushSave, 600); }
 async function flushSave(){
@@ -365,13 +377,17 @@ async function route(){
   try{
     if(h.startsWith('t/')){ const [tid, rowId] = h.slice(2).split('/'); await viewTraining(tid, rowId); }
     else if(h === 'roster') await viewRoster();
+    else if(h === 'admin') await viewAdmin();
     else await viewHome(h === 'archive');
   }catch(e){
     console.error(e);
     $app.innerHTML = `<div class="card"><h2>불러오지 못했습니다</h2><p class="muted">${esc(errText(e))}</p><a class="btn" href="#">첫 화면으로</a></div>`;
   }
   window.scrollTo(0, 0);
+  setBarH();
 }
+function setBarH(){ const t = document.querySelector('.top'); document.documentElement.style.setProperty('--bar-h', (t ? t.offsetHeight : 0) + 'px'); }
+window.addEventListener('resize', setBarH);
 window.addEventListener('hashchange', route);
 
 /* ───────── 첫 화면: 연수 목록 ───────── */
@@ -395,10 +411,11 @@ async function viewHome(archived){
     const inner = `<span class="it-title">${esc(t.title || '(제목 없음)')}</span>
       <span class="it-meta">${esc(meta || '세부 정보 없음')}</span>
       <span class="it-side"><span class="prog">${t.count ?? '?'}/${(t.rows || []).length}</span>
-        <span class="badge ${t.needSign ? 'sign' : ''}">${t.needSign ? '서명' : '기록만'}</span></span>`;
-    if(archived) return `<li><div class="item">${inner}
+        <span>${isPast(t) ? '<span class="badge ok">기한 지남</span> ' : ''}<span class="badge ${t.needSign ? 'sign' : ''}">${t.needSign ? '서명' : '기록만'}</span></span></span>`;
+    const typeCls = isOnline(t) ? 'on' : 'off';
+    if(archived) return `<li><div class="item ${typeCls}">${inner}
       <span class="btns" style="grid-column:1/-1;margin-top:6px"><button data-act="restore" data-id="${esc(t.id)}">되살리기</button><button class="danger" data-act="purge" data-id="${esc(t.id)}">완전 삭제</button></span></div></li>`;
-    return `<li><a class="item${isPast(t) ? ' past' : ''}" href="#t/${esc(t.id)}">${inner}</a></li>`;
+    return `<li><a class="item ${typeCls}" href="#t/${esc(t.id)}">${inner}</a><button class="it-edit" data-act="edit-home" data-id="${esc(t.id)}" title="연수 정보 수정">수정</button></li>`;
   };
   const col = (type, label, cls) => {
     const arr = list.filter(t => t.type === type);
@@ -414,18 +431,20 @@ async function viewHome(archived){
   }
   $app.innerHTML = `
     <div class="top"><h1>${esc(S.roster.school)} 연수 등록부</h1>
-      <div class="btns"><button class="primary big" data-act="new">＋ 연수 등록</button><a class="btn big" href="#roster" style="padding:11px 18px">명부 및 설정</a></div></div>
+      <div class="btns"><button class="primary big" data-act="new">＋ 연수 등록</button><a class="btn big" href="#roster" style="padding:11px 18px">명부 관리</a></div></div>
     ${S.roster.members.length ? '' : '<p class="notice">교직원 명부가 아직 비어 있습니다. <a href="#roster">명부 관리</a>에서 교원, 교직원, 봉사자 명부를 먼저 넣어 두면 연수를 등록할 때 대상을 한 번에 불러올 수 있습니다.</p>'}
     <div class="home-grid">
       <div>
         <div class="cols">${col('online', '온라인', 'on')}${col('offline', '오프라인', 'off')}</div>
-        <p class="muted small" style="margin:14px 0 0">완료요구일이 지난 연수는 초록색으로 표시됩니다. 숫자는 「기록한 사람 / 대상 인원」입니다.</p>
-        <p class="foot-links"><a href="#archive">보관함 보기</a></p>
+        <p class="muted small" style="margin:14px 0 0">숫자는 「기록한 사람 / 대상 인원」입니다. 연수 칸을 누르면 명단이 열리고, 옆의 「수정」으로 연수 정보를 고칩니다.</p>
+        <p class="foot-links"><a href="#archive">보관함 보기</a>　<a href="#admin">관리자 설정</a></p>
       </div>
-      <aside class="card mine">
+      <aside class="mine-col">
         <h2>내 연수 기록 찾기</h2>
+        <div class="card mine">
         <form id="mine-form"><input type="search" id="mine-q" placeholder="이름을 입력하세요" aria-label="이름" autocomplete="off"><button class="primary" type="submit">찾기</button></form>
         <div id="mine-result"><p class="muted small" style="margin:10px 0 0">이름을 넣으면 내가 기록한 연수와 아직 기록하지 않은 연수를 찾아 줍니다.</p></div>
+        </div>
       </aside>
     </div>`;
   $('#mine-form').addEventListener('submit', e => { e.preventDefault(); findMine($('#mine-q').value); });
@@ -455,7 +474,7 @@ async function findMine(name){
   });
   done.sort((a, b) => (b.miss.length ? 1 : 0) - (a.miss.length ? 1 : 0));
   const partial = done.filter(x => x.miss.length).length;
-  const item = ({ t, r, miss }) => `<li><a class="item${isPast(t) ? ' past' : ''}" href="#t/${esc(t.id)}/${esc(r.id)}">
+  const item = ({ t, r, miss }) => `<li><a class="item ${isOnline(t) ? 'on' : 'off'}" href="#t/${esc(t.id)}/${esc(r.id)}">
       <span class="it-title">${esc(t.title)}</span>
       <span class="it-meta">${esc([r.role, t.due ? fmtDate(t.due) + (isOnline(t) ? '까지' : '') : ''].filter(Boolean).join('  |  ') || ' ')}</span>
       <span class="it-side"><span class="badge ${isOnline(t) ? 'on' : 'off'}">${isOnline(t) ? '온라인' : '오프라인'}</span></span>
@@ -472,7 +491,7 @@ async function findMine(name){
 }
 
 /* ───────── 연수 등록 / 정보 수정 ───────── */
-async function openForm(existing){
+async function openForm(existing, tid){
   const r = await loadRoster();
   const t = existing || { type: 'online', needSign: false, fields: DEFAULT_FIELDS };
   const cnt = gid => r.members.filter(m => m.group === gid).length;
@@ -486,7 +505,7 @@ async function openForm(existing){
         <label><input type="radio" name="type" value="offline" ${t.type === 'offline' ? 'checked' : ''} ${existing ? 'disabled' : ''}>오프라인 연수</label>
       </div>
       <label class="f">연수명<span class="req">*</span> <input type="text" name="title" required value="${esc(t.title)}" placeholder="예: 2026 학교안전교육 연수"></label>
-      ${existing ? '' : `<fieldset><legend>연수 대상 (명부에서 한 번에 불러오기)</legend>
+      ${`<fieldset><legend>${existing ? '명부에서 대상 추가로 불러오기 (이미 명단에 있는 사람은 건너뜁니다)' : '연수 대상 (명부에서 한 번에 불러오기)'}</legend>
         ${r.members.length ? `<div class="checks">${r.groups.map(g => `<label class="chk"><input type="checkbox" name="grp" value="${esc(g.id)}"> ${esc(g.name)} <small class="muted">${cnt(g.id)}명</small></label>`).join('')}</div>`
           : '<p class="muted small" style="margin:0">명부가 비어 있습니다. 빈 명단으로 만들어지고, 나중에 사람을 추가할 수 있습니다.</p>'}
       </fieldset>`}
@@ -551,8 +570,14 @@ async function openForm(existing){
         fields: [...form.querySelectorAll('[name=fld]:checked')].map(c => c.value) });
       else Object.assign(data, { due: v('date'), time: v('time'), place: v('place'), needSign: true, fields: [] });
       if(existing){
-        await updateDoc(doc(db, 'trainings', S.tid), data);
-        dlg.close(); toast('저장했습니다');
+        const on = [...form.querySelectorAll('[name=grp]:checked')].map(c => c.value);
+        const has = new Set((existing.rows || []).map(x => norm(x.role) + '|' + norm(x.name)));
+        const add = r.groups.filter(g => on.includes(g.id)).flatMap(g =>
+          r.members.filter(m => m.group === g.id && !has.has(norm(m.role) + '|' + norm(m.name))).map(m => ({ id: rid(), group: g.name, role: m.role, name: m.name })));
+        if(add.length) data.rows = arrayUnion(...add);
+        await updateDoc(doc(db, 'trainings', tid), data);
+        dlg.close(); toast(add.length ? `저장했습니다 (명단에 ${add.length}명 추가)` : '저장했습니다');
+        if(!S.tid) route();
       }else{
         const on = [...form.querySelectorAll('[name=grp]:checked')].map(c => c.value);
         if(r.members.length && !on.length && !confirm('연수 대상을 고르지 않았습니다.\n빈 명단으로 등록할까요?')){ btn.disabled = false; return; }
@@ -596,7 +621,7 @@ async function viewTraining(id, openRow){
       <div class="btns">
         <button data-act="copylink">링크 복사</button>
         ${qr ? '<button data-act="bigqr">QR 코드</button>' : ''}
-        <button data-act="edit">정보 수정</button>
+        <button data-act="edit">연수 정보 수정</button>
         <button class="primary" data-act="print">PDF로 저장 / 인쇄</button>
         <button class="danger" data-act="del">삭제</button>
       </div></div>
@@ -609,7 +634,7 @@ async function viewTraining(id, openRow){
         <span class="count" id="count"></span>
       </div>
       <p class="guide" id="guide"></p>
-      <div class="tablewrap"><table class="reg"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+      <div id="tables"></div>
       <div class="editbtns"><button data-act="addperson">＋ 명단에 없는 사람 추가</button></div>
     </section>
     </div>
@@ -650,12 +675,13 @@ function paintInfo(){
 
 const nameOf = r => (S.recs[r.id] && S.recs[r.id].name) || r.name || '';
 function paintRows(){
-  const t = S.t; if(!t || !$('#tbody')) return;
+  const t = S.t, mount = $('#tables'); if(!t || !mount) return;
   const fields = fieldsOf(t);
   const q = norm($('#q').value), todo = $('#only-todo').checked;
   const span = 4 + fields.length + (t.needSign ? 1 : 0);
-  $('#thead').innerHTML = `<tr><th class="c-no">연번</th><th>직위/담당</th><th>성명</th>${fields.map(f => `<th class="f-${f.key}">${f.label}</th>`).join('')}${t.needSign ? '<th>서명</th>' : ''}<th class="c-st"></th></tr>`;
-  let done = 0, part = 0, html = '', lastGroup = null;
+  const head = `<thead><tr><th class="c-no">연번</th><th>직위/담당</th><th>성명</th>${fields.map(f => `<th class="f-${f.key}">${f.label}</th>`).join('')}${t.needSign ? '<th>서명</th>' : ''}<th class="c-st"></th></tr></thead>`;
+  let done = 0, part = 0;
+  const items = [];
   t.rows.forEach((r, i) => {
     const rec = S.recs[r.id]; if(rec) done++;
     const miss = rec ? missOf(t, rec) : [];
@@ -663,15 +689,26 @@ function paintRows(){
     const name = nameOf(r);
     if(todo && rec) return;
     if(q && !norm(name + r.role).includes(q)) return;
-    if(r.group && r.group !== lastGroup){ lastGroup = r.group; html += `<tr class="grp-row"><td colspan="${span}">${esc(r.group)}</td></tr>`; }
-    html += `<tr data-row="${esc(r.id)}" tabindex="0" class="${rec ? 'done' : ''}">
+    items.push({ group: r.group, html: `<tr data-row="${esc(r.id)}" tabindex="0" class="${rec ? 'done' : ''}">
       <td class="c-no">${i + 1}</td><td class="c-role">${esc(r.role)}</td><td class="nm">${esc(name)}</td>
       ${fields.map(f => `<td class="wrap f-${f.key}${miss.includes(f.key) ? ' empty' : ''}">${esc(rec?.values?.[f.key] ?? '')}</td>`).join('')}
       ${t.needSign ? `<td class="sg${miss.includes('sign') ? ' empty' : ''}">${rec && okImg(rec.sign) ? `<img src="${rec.sign}" alt="서명 완료">` : ''}</td>` : ''}
       <td class="c-st">${!rec ? `<span class="badge sign">${isOnline(t) ? '입력하기' : '서명하기'}</span>`
-        : miss.length ? `<span class="badge warn" title="미입력: ${esc(miss.map(fieldLabel).join(', '))}">미입력 ${miss.length}칸</span>` : '<span class="badge ok">완료</span>'}</td></tr>`;
+        : miss.length ? `<span class="badge warn" title="미입력: ${esc(miss.map(fieldLabel).join(', '))}">미입력 ${miss.length}칸</span>` : '<span class="badge ok">완료</span>'}</td></tr>` });
   });
-  $('#tbody').innerHTML = html || `<tr class="grp-row"><td colspan="${span}" style="text-align:center;padding:18px!important;font-weight:400">${t.rows.length ? '조건에 맞는 사람이 없습니다.' : '명단이 비어 있습니다. 아래 버튼으로 사람을 추가해 주세요.'}</td></tr>`;
+  const table = list => {
+    let last = null, body = '';
+    list.forEach(x => {
+      if(x.group && x.group !== last){ last = x.group; body += `<tr class="grp-row"><td colspan="${span}">${esc(x.group)}</td></tr>`; }
+      body += x.html;
+    });
+    return `<div class="tablewrap"><table class="reg">${head}<tbody>${body}</tbody></table></div>`;
+  };
+  if(!items.length) mount.innerHTML = `<p class="empty" style="border:1px solid var(--line);border-radius:10px;margin:0">${t.rows.length ? '조건에 맞는 사람이 없습니다.' : '명단이 비어 있습니다. 아래 버튼으로 사람을 추가해 주세요.'}</p>`;
+  else if(!isOnline(t) && items.length > 10){      /* 오프라인 서명 명단은 반으로 나눠 좌우에 놓는다 */
+    const half = Math.ceil(items.length / 2);
+    mount.innerHTML = `<div class="split2">${table(items.slice(0, half))}${table(items.slice(half))}</div>`;
+  }else mount.innerHTML = table(items);
   $('#count').textContent = `기록 ${done}/${t.rows.length}` + (part ? ` (일부 미입력 ${part}명)` : '');
   renderSheets();
 }
@@ -863,11 +900,11 @@ async function geminiJSON(key, parts, onTry){
     const j = await r.json().catch(() => ({}));
     if(r.ok){
       const data = parseAiJson(((j.candidates || [])[0]?.content?.parts || []).map(p => p.text || '').join(''));
-      if(data){ try{ localStorage.setItem('aiModel', model); }catch(_){} return { data, model }; }
+      if(data){ try{ localStorage.setItem('aiModel', model); }catch(_){} AI.list = [model, ...models.filter(m => m !== model)]; return { data, model }; }
       errs.push(`${model}: 답을 읽지 못함`); continue;
     }
     const msg = (j.error && j.error.message) || r.statusText || '';
-    if(r.status === 401) throw new Error(`API 키가 거부되었습니다 (401).\n${msg}\n「명부 및 설정」에서 키를 다시 확인해 주세요.`);
+    if(r.status === 401) throw new Error(`API 키가 거부되었습니다 (401).\n${msg}\n「관리자 설정」에서 키를 다시 확인해 주세요.`);
     errs.push(`${model}: ${r.status} ${msg}`.slice(0, 160));
   }
   throw new Error('사용할 수 있는 모델을 찾지 못했습니다.\n' + errs.join('\n'));
@@ -910,7 +947,7 @@ function setupCertAI(form){
     try{
       say('이수증을 읽는 중입니다…');
       const key = await getAiKey();
-      if(!key){ say('AI 키가 아직 등록되지 않았습니다. 첫 화면의 「명부 및 설정」에서 Gemini API 키를 넣어 주세요.', 'bad'); return; }
+      if(!key){ say('AI 키가 아직 등록되지 않았습니다. 담당 선생님께 알려 주세요. (첫 화면 아래 「관리자 설정」에서 Gemini API 키를 넣어야 합니다)', 'bad'); return; }
       const part = await fileToPart(file);
       const { data, model } = await geminiJSON(key, [part, { text: CERT_PROMPT }], m => say(`이수증을 읽는 중입니다… (${m})`));
       const filled = [];
@@ -985,26 +1022,80 @@ function renderSheets(){
   mount.innerHTML = out;
 }
 
-/* ───────── 명부 관리 ───────── */
-async function viewRoster(){
+/* ───────── 관리자 설정 (비밀번호로 잠금): AI 키 ───────── */
+async function pwHash(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('yeonsu-register:' + text));
+  return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+async function viewAdmin(){
   $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
-  await loadRoster();
+  document.title = '관리자 설정';
+  const snap = await getDoc(doc(db, 'settings', 'admin'));
+  const hash = snap.exists() ? (snap.data().hash || '') : '';
+  const top = '<div class="top"><h1>관리자 설정</h1><div class="btns"><a class="btn" href="#">← 연수 목록</a></div></div>';
+  if(!hash || !S.adminOk){
+    $app.innerHTML = top + `<form class="card lock" id="lock">
+      <h2>${hash ? '관리자 비밀번호 입력' : '관리자 비밀번호 만들기'}</h2>
+      <p class="muted small" style="margin:-6px 0 12px">${hash ? 'AI 키 같은 설정은 비밀번호를 아는 사람만 열 수 있습니다.' : '처음이라 비밀번호가 없습니다. 지금 정한 비밀번호로 이 화면이 잠깁니다. 4자 이상으로 정해 주세요.'}</p>
+      <div class="stack">
+        <label class="f">비밀번호<span class="req">*</span> <input type="password" name="pw" required minlength="4" autocomplete="off" style="width:100%;font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px"></label>
+        ${hash ? '' : '<label class="f">비밀번호 다시 입력<span class="req">*</span> <input type="password" name="pw2" required minlength="4" autocomplete="off" style="width:100%;font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px"></label>'}
+      </div>
+      <p class="err" id="lock-err" hidden></p>
+      <div class="dbtns"><button type="submit" class="primary">${hash ? '들어가기' : '비밀번호 만들기'}</button></div>
+    </form>`;
+    const form = $('#lock'), err = $('#lock-err');
+    form.elements.pw.focus();
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const pw = form.elements.pw.value;
+      try{
+        if(hash){
+          if(await pwHash(pw) !== hash){ err.textContent = '비밀번호가 맞지 않습니다.'; err.hidden = false; return; }
+        }else{
+          if(pw !== form.elements.pw2.value){ err.textContent = '두 비밀번호가 서로 다릅니다.'; err.hidden = false; return; }
+          await setDoc(doc(db, 'settings', 'admin'), { hash: await pwHash(pw), updatedAt: serverTimestamp() });
+        }
+        S.adminOk = true; await viewAdmin(); setBarH();
+      }catch(e2){ fail(e2, '확인'); }
+    });
+    return;
+  }
   const aiKey = await getAiKey(true);
-  document.title = '명부 및 설정';
-  $app.innerHTML = `
-    <div class="top"><h1>명부 및 설정</h1><div class="btns"><a class="btn" href="#">← 연수 목록</a></div></div>
-    <section class="card">
-      <label class="f" style="max-width:340px">학교명 (등록부 인쇄물에 들어갑니다) <input type="text" id="school" value="${esc(S.roster.school)}"></label>
-    </section>
-    <section class="card">
+  $app.innerHTML = top + `    <section class="card">
       <h2>AI 이수증 읽기 설정 (Gemini)</h2>
-      <p class="muted small" style="margin:-6px 0 10px">온라인 연수를 기록할 때 이수증 파일이나 캡처 화면을 넣으면 AI가 읽어 칸을 채워 줍니다. Google AI Studio에서 받은 Gemini API 키를 한 번만 넣어 두면 됩니다. 쓸 수 있는 모델은 자동으로 찾아 최신 것부터 차례로 시도합니다.</p>
+      <p class="muted small" style="margin:-6px 0 10px">온라인 연수를 기록할 때 이수증 파일이나 캡처 화면을 넣으면 AI가 읽어 칸을 채워 줍니다. Google AI Studio에서 받은 Gemini API 키를 한 번만 넣어 두면 모든 선생님이 쓸 수 있습니다. 쓸 수 있는 모델은 자동으로 찾아 최신 것부터 차례로 시도합니다.</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;max-width:720px">
         <input type="password" id="ai-key" autocomplete="off" placeholder="Gemini API 키 붙여넣기" style="flex:1 1 260px;width:auto" value="${esc(aiKey)}">
         <button data-act="ai-save" class="primary">키 저장</button>
         <button data-act="ai-test">연결 시험</button>
       </div>
       <p id="ai-set-status" class="small" style="margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere" hidden></p>
+    </section>
+    <section class="card">
+      <h2>관리자 비밀번호 바꾸기</h2>
+      <form id="pwform" style="display:flex;gap:8px;flex-wrap:wrap;max-width:720px">
+        <input type="password" name="pw" required minlength="4" autocomplete="off" placeholder="새 비밀번호 (4자 이상)" style="flex:1 1 220px;width:auto;font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px">
+        <button type="submit">비밀번호 바꾸기</button>
+      </form>
+      <p class="muted small" style="margin:10px 0 0">비밀번호를 잊으면 파이어베이스 콘솔의 Firestore에서 settings 안의 admin 문서를 지우면 새로 만들 수 있습니다.</p>
+    </section>`;
+  $('#pwform').addEventListener('submit', async e => {
+    e.preventDefault();
+    try{ await setDoc(doc(db, 'settings', 'admin'), { hash: await pwHash(e.target.elements.pw.value), updatedAt: serverTimestamp() }); e.target.reset(); toast('비밀번호를 바꿨습니다'); }
+    catch(e2){ fail(e2, '비밀번호 변경'); }
+  });
+}
+
+/* ───────── 명부 관리 ───────── */
+async function viewRoster(){
+  $app.innerHTML = '<p class="empty">불러오는 중입니다…</p>';
+  await loadRoster();
+  document.title = '명부 관리';
+  $app.innerHTML = `
+    <div class="top"><h1>명부 관리</h1><div class="btns"><a class="btn" href="#">← 연수 목록</a></div></div>
+    <section class="card">
+      <label class="f" style="max-width:340px">학교명 (등록부 인쇄물에 들어갑니다) <input type="text" id="school" value="${esc(S.roster.school)}"></label>
     </section>
     <section class="card">
       <h2>구분</h2>
@@ -1232,6 +1323,7 @@ $app.addEventListener('click', async e => {
   try{
     /* 첫 화면, 보관함 */
     if(act === 'new') return openForm(null);
+    if(act === 'edit-home'){ const t = S.list.find(x => x.id === b.dataset.id); return t && openForm(t, t.id); }
     if(act === 'restore'){ await updateDoc(doc(db, 'trainings', b.dataset.id), { archived: false }); toast('되살렸습니다'); return route(); }
     if(act === 'purge'){
       const t = S.list.find(x => x.id === b.dataset.id); if(!t) return;
@@ -1248,7 +1340,7 @@ $app.addEventListener('click', async e => {
       $('#qr-big').innerHTML = `<img src="${qrDataUrl(pageUrl(S.tid))}" alt="이 연수 등록부로 가는 QR 코드">`;
       return $('#dlg-qr').showModal();
     }
-    if(act === 'edit') return openForm(S.t);
+    if(act === 'edit') return openForm(S.t, S.tid);
     if(act === 'addperson') return openEntry(null);
     if(act === 'print'){ renderSheets(); document.title = S.t.title || '연수 등록부'; return window.print(); }
     if(act === 'del'){
