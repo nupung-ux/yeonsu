@@ -69,7 +69,7 @@
   .t-left>.card{margin:0}
   .splitn{display:grid;gap:12px;align-items:start}
   .editing .bar,.editing #guide,.editing .editbtns{display:none}
-  table.edtable{min-width:0}
+  table.edit.edtable{min-width:0}
   .edbar{margin-bottom:10px}
   .edbar .chk{font-weight:700}
   .item.on{background:#f7f3fe;border-color:#dfd3f6} .item.off{background:#fff6ea;border-color:#f2dcc0}
@@ -168,6 +168,11 @@
   .selnum{font-weight:700;color:var(--accent-dark)}
   table.edit tr.picked td{background:#eef4fd}
   .c-grp{width:130px} .c-tools{width:150px;white-space:nowrap;text-align:right!important}
+  table.roster{table-layout:fixed;width:100%}
+  table.roster .c-grp{width:96px} table.roster .c-no{width:38px} table.roster .c-chk{width:30px}
+  table.roster td{padding:4px 4px} table.roster input,table.roster select{padding:5px 6px;min-width:0}
+  .c-x{width:34px;text-align:center!important} .c-x button{padding:2px 8px;border:0;background:transparent;font-size:1.05rem;line-height:1.2}
+  .c-x button:hover{background:#fdecea}
   .c-tools button{padding:4px 8px;font-size:.82rem}
   .groups{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
   .grp{display:flex;align-items:center;gap:4px;border:1.5px solid var(--line);border-radius:10px;padding:3px 4px 3px 8px;background:#fff}
@@ -448,7 +453,12 @@ async function route(){
 }
 function setBarH(){ const t = document.querySelector('.top'); document.documentElement.style.setProperty('--bar-h', (t ? t.offsetHeight : 0) + 'px'); }
 window.addEventListener('resize', setBarH);
-let resizeTimer; window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if(S.t && !S.edit) paintRows(); }, 200); });
+let resizeTimer; window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {
+  if(S.t && !S.edit) paintRows();
+  /* 명부 화면: 단 수가 달라질 때만, 그리고 칸에 입력하는 중이 아닐 때만 다시 그린다 */
+  const ed = $('#editor');
+  if(ed && S.roster && !S.t && S.rosterCols && colCount(ed, 3, 1200, 720) !== S.rosterCols && !ed.contains(document.activeElement)) paintRoster();
+}, 200); });
 window.addEventListener('hashchange', route);
 
 /* ───────── 첫 화면: 연수 목록 ───────── */
@@ -763,7 +773,7 @@ function paintInfo(){
 
 const nameOf = r => (S.recs[r.id] && S.recs[r.id].name) || r.name || '';
 /* 명단을 몇 단으로 나눌지: 대면 연수는 넓은 화면에서 3단까지 */
-function colCount(mount, max){ const w = mount.clientWidth; return Math.min(max, w >= 1000 ? 3 : w >= 620 ? 2 : 1); }
+function colCount(mount, max, w3 = 1000, w2 = 620){ const w = mount.clientWidth; return Math.min(max, w >= w3 ? 3 : w >= w2 ? 2 : 1); }
 function splitTables(list, n, table){
   if(n <= 1 || list.length <= 10) return table(list);
   const per = Math.ceil(list.length / n), parts = [];
@@ -1371,7 +1381,8 @@ async function viewRoster(){
       <p class="muted small" style="margin:-6px 0 10px">고치면 바로 저장됩니다. 이미 등록한 연수의 명단은 바뀌지 않습니다.</p>
       <div id="seedbox"></div>
       <div class="selbar" id="selbar">
-        <span id="sel-count" class="muted small">줄 앞의 네모를 체크하면 여러 명을 한 번에 옮기거나 삭제할 수 있습니다.</span>
+        <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label class="chk" style="font-weight:700"><input type="checkbox" id="chk-all"> 전체 선택</label>
+        <span id="sel-count" class="muted small">줄 앞의 네모를 체크하면 여러 명을 한 번에 옮기거나 삭제할 수 있습니다.</span></span>
         <span class="selbtns">
           <button data-act="selup" data-selbtn disabled>▲ 위로</button>
           <button data-act="seldown" data-selbtn disabled>▼ 아래로</button>
@@ -1403,13 +1414,18 @@ function paintRoster(){
     + '<button data-act="addgroup">＋ 구분 추가</button>';
   $('#seedbox').innerHTML = r.members.length ? '' : `<p class="notice">명부가 비어 있습니다. 기존 구글 시트에 있던 직위/담당 65개를 그대로 불러온 뒤 이름만 채워 넣을 수 있습니다.<br><button data-act="seed" style="margin-top:8px">기존 시트의 직위 불러오기</button></p>`;
   const opts = sel => r.groups.map(g => `<option value="${esc(g.id)}" ${g.id === sel ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
-  $('#editor').innerHTML = `<div class="tablewrap"><table class="edit"><thead><tr><th class="c-chk"><input type="checkbox" id="chk-all" aria-label="전체 선택" ${r.members.length && r.members.every(m => S.sel.has(m.id)) ? 'checked' : ''}></th><th class="c-no">연번</th><th class="c-grp">구분</th><th>직위/담당</th><th>성명</th><th class="c-tools"></th></tr></thead><tbody>${
-    r.members.map((m, i) => `<tr data-m="${esc(m.id)}"><td class="c-chk"><input type="checkbox" data-sel aria-label="선택" ${S.sel.has(m.id) ? 'checked' : ''}></td><td class="c-no">${i + 1}</td>
+  /* 명부 표: 화면 폭에 따라 3단, 2단, 1단으로 나눠 한눈에 보이게 한다 */
+  const mount = $('#editor');
+  const head = '<thead><tr><th class="c-chk"></th><th class="c-no">연번</th><th class="c-grp">구분</th><th>직위/담당</th><th>성명</th><th class="c-x"></th></tr></thead>';
+  const items = r.members.map((m, i) => ({ html: `<tr data-m="${esc(m.id)}"><td class="c-chk"><input type="checkbox" data-sel aria-label="선택" ${S.sel.has(m.id) ? 'checked' : ''}></td><td class="c-no">${i + 1}</td>
       <td><select data-mf="group" aria-label="구분">${opts(m.group)}</select></td>
       <td><input type="text" data-mf="role" value="${esc(m.role)}" aria-label="직위/담당"></td>
       <td><input type="text" data-mf="name" value="${esc(m.name)}" aria-label="성명"></td>
-      <td class="c-tools"><button data-act="mup" aria-label="위로">▲</button> <button data-act="mdown" aria-label="아래로">▼</button> <button class="danger" data-act="mdel">삭제</button></td></tr>`).join('')
-    || '<tr><td colspan="6" class="muted" style="text-align:center;padding:18px">아직 등록된 사람이 없습니다.</td></tr>'}</tbody></table></div>`;
+      <td class="c-x"><button class="danger" data-act="mdel" title="이 줄 삭제" aria-label="이 줄 삭제">×</button></td></tr>` }));
+  const table = list => `<div class="tablewrap"><table class="edit edtable roster">${head}<tbody>${list.map(x => x.html).join('')}</tbody></table></div>`;
+  S.rosterCols = colCount(mount, 3, 1200, 720);
+  mount.innerHTML = items.length ? splitTables(items, S.rosterCols, table)
+    : '<p class="empty" style="border:1px solid var(--line);border-radius:10px;margin:0">아직 등록된 사람이 없습니다.</p>';
   paintSel();
 }
 function paintSel(){
